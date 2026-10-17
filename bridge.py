@@ -428,8 +428,11 @@ def assert_approved(body: dict[str, Any], message: str) -> None:
 
 def normalize_loopback_url(value: str) -> str:
     parsed = urllib.parse.urlsplit(value)
-    if parsed.scheme != "http" or parsed.hostname not in {"127.0.0.1", "localhost"}:
-        raise ValueError("Ollama URL must use http://127.0.0.1 or http://localhost.")
+    hostname = parsed.hostname
+    if parsed.scheme != "http" or hostname is None:
+        raise ValueError("Ollama URL must use http://127.0.0.1, http://localhost, or a loopback IPv6 literal.")
+    if not (hostname.lower() == "localhost" or validate_local_address(hostname)):
+        raise ValueError("Ollama URL must use a loopback address.")
     if parsed.username or parsed.password or parsed.query or parsed.fragment:
         raise ValueError("Ollama URL must not contain credentials, a query, or a fragment.")
     if parsed.path not in {"", "/"}:
@@ -438,7 +441,11 @@ def normalize_loopback_url(value: str) -> str:
         port = parsed.port or 11434
     except ValueError as exc:
         raise ValueError("Ollama URL has an invalid port.") from exc
-    return f"http://{parsed.hostname}:{port}"
+    if ":" in hostname:
+        host = f"[{hostname}]"
+    else:
+        host = hostname
+    return f"http://{host}:{port}"
 
 
 def get_projects() -> list[dict[str, Any]]:
@@ -967,10 +974,13 @@ def call_ollama(base_url: str, path: str, body: dict[str, Any] | None, timeout: 
 
 
 def validate_local_address(value: str) -> bool:
-    if value.lower() == "localhost":
+    candidate = value.strip()
+    if candidate.startswith("[") and candidate.endswith("]"):
+        candidate = candidate[1:-1]
+    if candidate.lower() == "localhost":
         return True
     try:
-        return ipaddress.ip_address(value).is_loopback
+        return ipaddress.ip_address(candidate).is_loopback
     except ValueError:
         return False
 
