@@ -113,22 +113,6 @@ function Assert-Authorized([System.Net.HttpListenerRequest]$req) {
     $normalized = $matches[1].Trim()
   }
 
-  if (-not $normalized -or $normalized -ne $Token) "Bearer $Token") {
-    throw 'Unauthorized: wrong or missing token.'
-  }
-}
-
-function Assert-AuthorizedFixed([System.Net.HttpListenerRequest]$req) {
-  $auth = [string]$req.Headers['Authorization']
-  if (-not $auth) {
-    throw 'Unauthorized: wrong or missing token.'
-  }
-
-  $normalized = $auth.Trim()
-  if ($normalized -match '^Bearer\s+(.+)$') {
-    $normalized = $matches[1].Trim()
-  }
-
   if (-not $normalized -or $normalized -ne $Token) {
     throw 'Unauthorized: wrong or missing token.'
   }
@@ -230,7 +214,7 @@ try {
 
     try {
       Test-LocalRequest $req
-      Assert-AuthorizedFixed $req
+      Assert-Authorized $req
 
       $route = "$($req.HttpMethod) $($req.Url.AbsolutePath)"
       switch ($route) {
@@ -341,8 +325,11 @@ try {
         }
 
         'POST /api/ollama/chat' {
-          $raw = Read-Body $ctx
-          $r = Invoke-RestMethod -Uri "$OllamaUrl/api/chat" -Method Post -Body $raw -ContentType 'application/json' -TimeoutSec 600
+          $requestBody = Read-Body $ctx | ConvertFrom-Json
+          if (-not $requestBody -or -not $requestBody.model) { throw 'Ollama model is required.' }
+          $requestBody | Add-Member -MemberType NoteProperty -Name stream -Value $false -Force
+          $jsonBody = ConvertTo-Json -InputObject $requestBody -Depth 20 -Compress
+          $r = Invoke-RestMethod -Uri "$OllamaUrl/api/chat" -Method Post -Body $jsonBody -ContentType 'application/json' -TimeoutSec 600
           Send-Json $ctx $r
         }
 
