@@ -88,7 +88,11 @@ try {
   if (-not ((ConvertFrom-Json $health.Body).ok)) { throw 'Health route did not return ok=true.' }
   $stats = Invoke-BridgeRequest '/api/stats' $token
   Assert-Status $stats 200 'system metrics route'
-  if ($null -eq (ConvertFrom-Json $stats.Body).disks) { throw 'System metrics response is missing disks.' }
+  $statsBody = ConvertFrom-Json $stats.Body
+  if ($null -eq $statsBody.disks) { throw 'System metrics response is missing disks.' }
+  foreach ($field in @('cpuCores', 'cpuThreads', 'cpuMaxMHz')) {
+    if ($statsBody.PSObject.Properties.Name -notcontains $field) { throw "System metrics response is missing $field." }
+  }
   foreach ($route in @('/api/actions', '/api/projects', '/api/processes', '/api/services', '/api/mcp/status')) {
     Assert-Status (Invoke-BridgeRequest $route $token) 200 "$route read route"
   }
