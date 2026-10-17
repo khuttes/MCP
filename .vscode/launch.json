@@ -12,11 +12,28 @@
             "webRoot": "${workspaceFolder}"
         },
         {
+            "name": "Helpyard: Start Local Bridge",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "${workspaceFolder}\\bridge.ps1",
+            "args": []
+        },
+        {
             "name": "PowerShell: Launch Current File",
             "type": "PowerShell",
             "request": "launch",
             "script": "${file}",
             "args": []
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Helpyard: Full Local Development",
+            "configurations": [
+                "Helpyard: Start Local Bridge",
+                "Helpyard: Open Dashboard"
+            ],
+            "stopAll": true
         }
     ]
 }

@@ -1,0 +1,44 @@
+'use strict';
+
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+
+const dashboardPath = path.join(__dirname, '..', 'pc-control-dashboard.html');
+const bridgePath = path.join(__dirname, '..', 'bridge.ps1');
+const html = fs.readFileSync(dashboardPath, 'utf8');
+const bridge = fs.readFileSync(bridgePath, 'utf8');
+const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
+
+function assert(condition, message) {
+  if (!condition) throw new Error(message);
+}
+
+assert(scripts.length === 1, `Expected one inline script; found ${scripts.length}.`);
+const script = scripts[0][1];
+new vm.Script(script, { filename: dashboardPath });
+assert(/key !== 'token'/.test(script), 'Bridge token is being persisted instead of kept in memory.');
+assert(!/cloudKey\s*:/.test(script), 'Cloud API key must not be part of persisted default state.');
+assert(/id="runCmdBtn"[^>]*disabled/.test(html), 'Unrestricted terminal control must remain disabled.');
+
+const pageNav = new Set([...html.matchAll(/data-page="([^"]+)"/g)].map((match) => match[1]));
+const pageSections = new Set([...html.matchAll(/id="page-([^"]+)"/g)].map((match) => match[1]));
+assert(pageNav.size === pageSections.size, 'Navigation and page section counts differ.');
+for (const page of pageNav) assert(pageSections.has(page), `Navigation target page-${page} is missing.`);
+for (const page of pageSections) assert(pageNav.has(page), `Page page-${page} has no navigation entry.`);
+
+const domIds = new Set([...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]));
+for (const [, id] of script.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)) {
+  if (id !== 'toast') assert(domIds.has(id), `Dashboard script references missing element #${id}.`);
+}
+
+const dashboardRoutes = new Set([...script.matchAll(/\bapi\(['"](\/api\/[^'"]+)['"]/g)].map((match) => match[1]));
+const bridgeRoutes = new Set([...bridge.matchAll(/'(?:GET|POST) (\/api\/[^']+)'/g)].map((match) => match[1]));
+for (const route of dashboardRoutes) assert(bridgeRoutes.has(route), `Dashboard route ${route} is not implemented by the bridge.`);
+
+const linkedAssets = [...html.matchAll(/(?:src|href)="([^"]+)"/g)]
+  .map((match) => match[1])
+  .filter((value) => !value.startsWith('#') && !value.startsWith('https://') && !value.startsWith('http://'));
+assert(linkedAssets.length === 0, `Unexpected external/local assets found: ${linkedAssets.join(', ')}`);
+
+console.log(`Dashboard checks passed: ${pageNav.size} navigation targets, ${dashboardRoutes.size} API routes, ${domIds.size} DOM IDs.`);

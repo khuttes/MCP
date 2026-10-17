@@ -10,6 +10,8 @@ param(
   [string]$OllamaUrl = 'http://127.0.0.1:11434'
 )
 
+$script:MaxRequestBytes = 1048576
+
 if (-not $Token) {
   $bytes = New-Object byte[] 16
   [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
@@ -42,20 +44,59 @@ function Send-Json($ctx, $obj, [int]$code = 200) {
   $b = [Text.Encoding]::UTF8.GetBytes($json)
   $ctx.Response.StatusCode = $code
   $ctx.Response.ContentType = 'application/json; charset=utf-8'
+  $ctx.Response.Headers['Cache-Control'] = 'no-store'
   $ctx.Response.OutputStream.Write($b, 0, $b.Length)
   $ctx.Response.Close()
 }
 
 function Read-Body($ctx) {
-  $sr = New-Object IO.StreamReader($ctx.Request.InputStream, [Text.Encoding]::UTF8)
-  $raw = $sr.ReadToEnd(); $sr.Close()
-  return $raw
+  if ($ctx.Request.ContentLength64 -gt $script:MaxRequestBytes) {
+    throw 'Request body exceeds the 1 MiB limit.'
+  }
+
+  $stream = $ctx.Request.InputStream
+  $buffer = New-Object byte[] 8192
+  $memory = New-Object IO.MemoryStream
+  try {
+    while (($read = $stream.Read($buffer, 0, $buffer.Length)) -gt 0) {
+      if (($memory.Length + $read) -gt $script:MaxRequestBytes) {
+        throw 'Request body exceeds the 1 MiB limit.'
+      }
+      $memory.Write($buffer, 0, $read)
+    }
+    $encoding = New-Object System.Text.UTF8Encoding($false, $true)
+    try {
+      return $encoding.GetString($memory.ToArray())
+    } catch {
+      throw 'Request body must contain valid UTF-8.'
+    }
+  } finally {
+    $memory.Dispose()
+  }
 }
 
-function Run-Command([string]$cmd) {
-  $sb = [scriptblock]::Create($cmd)
-  $out = & $sb 2>&1 | Out-String -Width 220
-  return $out
+function Read-JsonBody($ctx) {
+  $raw = Read-Body $ctx
+  if ([string]::IsNullOrWhiteSpace($raw)) {
+    throw 'A JSON request body is required.'
+  }
+  try {
+    $body = ConvertFrom-Json -InputObject $raw -ErrorAction Stop
+  } catch {
+    throw "Invalid JSON request body: $($_.Exception.Message)"
+  }
+  if ($null -eq $body -or $body -is [string] -or $body -is [ValueType] -or $body -is [Array]) {
+    throw 'The JSON request body must be an object.'
+  }
+  return $body
+}
+
+function Assert-AllowedProperties($body, [string[]]$allowedFields) {
+  foreach ($property in $body.PSObject.Properties) {
+    if ($property.Name -notin $allowedFields) {
+      throw "Unexpected request field '$($property.Name)'."
+    }
+  }
 }
 
 function Get-AvailablePort([int]$PreferredPort = 8787) {
@@ -119,14 +160,7 @@ function Assert-Authorized([System.Net.HttpListenerRequest]$req) {
 }
 
 function Get-Projects() {
-  $roots = @(
-    $env:USERPROFILE,
-    $env:USERPROFILE + '\Projects',
-    $env:USERPROFILE + '\source\repos',
-    $env:USERPROFILE + '\Desktop',
-    $env:LOCALAPPDATA + '\Programs',
-    (Get-Location).Path
-  )
+  $roots = @($PSScriptRoot)
 
   $items = @()
   foreach ($root in ($roots | Select-Object -Unique)) {
@@ -143,9 +177,7 @@ function Get-Projects() {
   $gitDirs = @()
   foreach ($root in ($roots | Select-Object -Unique)) {
     if (-not $root -or -not (Test-Path $root)) { continue }
-    try {
-      $gitDirs += Get-ChildItem -Path $root -Directory -ErrorAction Stop | Where-Object { Test-Path (Join-Path $_.FullName '.git') }
-    } catch {}
+    $gitDirs += Get-ChildItem -Path $root -Directory -ErrorAction Stop | Where-Object { Test-Path (Join-Path $_.FullName '.git') }
   }
 
   foreach ($d in ($gitDirs | Select-Object -Unique -ExpandProperty FullName)) {
@@ -205,16 +237,26 @@ try {
     $req = $ctx.Request
     $res = $ctx.Response
     $origin = [string]$req.Headers['Origin']
-    $allowOrigin = if ($origin -and ($origin -eq 'null' -or $origin -match '^https?://(localhost|127\.0\.0\.1)(:\d+)?$')) { $origin } else { '*' }
-    $res.Headers.Add('Access-Control-Allow-Origin', $allowOrigin)
-    $res.Headers.Add('Access-Control-Allow-Headers', 'Authorization, Content-Type, X-CSRF-Token')
-    $res.Headers.Add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+      try {
+        Test-LocalRequest $req
+      } catch {
+        if ($req.HttpMethod -eq 'OPTIONS') {
+          $res.StatusCode = 403
+          $res.Close()
+        } else {
+          Send-Json $ctx @{ error = $_.Exception.Message } 403
+        }
+        continue
+      }
+      if ($origin) { $res.Headers['Access-Control-Allow-Origin'] = $origin }
+      $res.Headers['Vary'] = 'Origin'
+      $res.Headers['Access-Control-Allow-Headers'] = 'Authorization, Content-Type'
+      $res.Headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
 
-    if ($req.HttpMethod -eq 'OPTIONS') { $res.StatusCode = 204; $res.Close(); continue }
+      if ($req.HttpMethod -eq 'OPTIONS') { $res.StatusCode = 204; $res.Close(); continue }
 
-    try {
-      Test-LocalRequest $req
-      Assert-Authorized $req
+      try {
+        Assert-Authorized $req
 
       $route = "$($req.HttpMethod) $($req.Url.AbsolutePath)"
       switch ($route) {
@@ -275,8 +317,12 @@ try {
         }
 
         'POST /api/process/stop' {
-          $b = (Read-Body $ctx) | ConvertFrom-Json
-          Stop-Process -Id ([int]$b.id) -Force
+          $b = Read-JsonBody $ctx
+          Assert-AllowedProperties $b @('id', 'approved')
+          if ($b.id -isnot [ValueType] -or [int]$b.id -le 0) { throw 'A valid process ID is required.' }
+          if ($b.approved -isnot [bool] -or -not $b.approved) { throw 'Stopping a process requires explicit approval.' }
+          if ([int]$b.id -eq $PID) { throw 'The bridge process cannot stop itself.' }
+          Stop-Process -Id ([int]$b.id) -Force -ErrorAction Stop
           Send-Json $ctx @{ ok = $true }
         }
 
@@ -288,35 +334,37 @@ try {
         }
 
         'POST /api/service' {
-          $b = (Read-Body $ctx) | ConvertFrom-Json
+          $b = Read-JsonBody $ctx
+          Assert-AllowedProperties $b @('name', 'action', 'approved')
+          if ([string]$b.name -notmatch '^[A-Za-z0-9_.-]{1,128}$') { throw 'A valid exact service name is required.' }
+          if ($b.approved -isnot [bool] -or -not $b.approved) { throw 'Changing a service requires explicit approval.' }
+          $service = Get-Service -Name ([string]$b.name) -ErrorAction Stop
           switch ($b.action) {
-            'start'   { Start-Service   -Name $b.name }
-            'stop'    { Stop-Service    -Name $b.name -Force }
-            'restart' { Restart-Service -Name $b.name -Force }
+            'start'   { Start-Service   -InputObject $service -ErrorAction Stop }
+            'stop'    { Stop-Service    -InputObject $service -Force -ErrorAction Stop }
+            'restart' { Restart-Service -InputObject $service -Force -ErrorAction Stop }
             default   { throw "Unknown service action" }
           }
           Send-Json $ctx @{ ok = $true }
         }
 
         'POST /api/action' {
-          $b = (Read-Body $ctx) | ConvertFrom-Json
+          $b = Read-JsonBody $ctx
+          Assert-AllowedProperties $b @('name', 'approved')
           if (-not $b -or -not $b.name) { throw 'Action name is required.' }
           if (-not $actions.ContainsKey($b.name)) { throw "Unknown action '$($b.name)'" }
 
           $rule = $script:ActionRegistry[$b.name]
           if (-not $rule) { throw "Action '$($b.name)' is not registered." }
           if (($rule.permission -eq 'admin') -and (-not $isAdmin)) { throw "Action '$($b.name)' requires administrator rights." }
-          if ($rule.requiresApproval -and -not $b.approved) { throw "Action '$($b.name)' requires explicit approval before execution." }
+          if ($rule.requiresApproval -and ($b.approved -isnot [bool] -or -not $b.approved)) { throw "Action '$($b.name)' requires explicit approval before execution." }
 
           $out = & $actions[$b.name] 2>&1 | Out-String
           Send-Json $ctx @{ ok = $true; output = $out.Trim(); action = $b.name; permission = $rule.permission; risk = $rule.risk }
         }
 
         'POST /api/run' {
-          $b = (Read-Body $ctx) | ConvertFrom-Json
-          if (-not $b.command) { throw 'Command is required.' }
-          $out = Run-Command $b.command
-          Send-Json $ctx @{ ok = $true; output = $out }
+          Send-Json $ctx @{ error = 'Arbitrary PowerShell execution is disabled. Use reviewed named operations instead.' } 403
         }
 
         'GET /api/ollama/tags' {
@@ -325,8 +373,15 @@ try {
         }
 
         'POST /api/ollama/chat' {
-          $requestBody = Read-Body $ctx | ConvertFrom-Json
-          if (-not $requestBody -or -not $requestBody.model) { throw 'Ollama model is required.' }
+          $requestBody = Read-JsonBody $ctx
+          Assert-AllowedProperties $requestBody @('model', 'messages', 'stream', 'options')
+          if ([string]::IsNullOrWhiteSpace([string]$requestBody.model)) { throw 'Ollama model is required.' }
+          if ($null -eq $requestBody.messages) { throw 'Ollama messages are required.' }
+          foreach ($message in @($requestBody.messages)) {
+            if ($message -isnot [System.Management.Automation.PSCustomObject] -or $message.role -notin @('system', 'user', 'assistant') -or $message.content -isnot [string]) {
+              throw 'Ollama messages must be objects with a supported role and text content.'
+            }
+          }
           $requestBody | Add-Member -MemberType NoteProperty -Name stream -Value $false -Force
           $jsonBody = ConvertTo-Json -InputObject $requestBody -Depth 20 -Compress
           $r = Invoke-RestMethod -Uri "$OllamaUrl/api/chat" -Method Post -Body $jsonBody -ContentType 'application/json' -TimeoutSec 600
@@ -343,28 +398,12 @@ try {
         }
 
         'POST /api/mcp/start' {
-          $b = (Read-Body $ctx) | ConvertFrom-Json
-          $old = @{}
-          if ($b.env) {
-            foreach ($prop in $b.env.PSObject.Properties) {
-              $old[$prop.Name] = [Environment]::GetEnvironmentVariable($prop.Name, 'Process')
-              [Environment]::SetEnvironmentVariable($prop.Name, [string]$prop.Value, 'Process')
-            }
-          }
-          try {
-            $argList = @($b.args)
-            if ($argList.Count -gt 0) { $p = Start-Process -FilePath $b.command -ArgumentList $argList -WindowStyle Hidden -PassThru }
-            else { $p = Start-Process -FilePath $b.command -WindowStyle Hidden -PassThru }
-            $script:mcp[$b.id] = $p
-            Start-Sleep -Milliseconds 1500
-            Send-Json $ctx @{ ok = $true; pid = $p.Id; running = (-not $p.HasExited) }
-          } finally {
-            foreach ($k in $old.Keys) { [Environment]::SetEnvironmentVariable($k, $old[$k], 'Process') }
-          }
+          Send-Json $ctx @{ error = 'MCP startup is disabled until a reviewed server registry is configured.' } 403
         }
 
         'POST /api/mcp/stop' {
-          $b = (Read-Body $ctx) | ConvertFrom-Json
+          $b = Read-JsonBody $ctx
+          Assert-AllowedProperties $b @('id')
           if ($script:mcp.ContainsKey($b.id)) {
             $p = $script:mcp[$b.id]
             if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force }
@@ -380,7 +419,9 @@ try {
         }
 
         'POST /api/claude-config' {
-          $b = (Read-Body $ctx) | ConvertFrom-Json
+          $b = Read-JsonBody $ctx
+          Assert-AllowedProperties $b @('content', 'approved')
+          if ($b.approved -isnot [bool] -or -not $b.approved) { throw 'Updating Claude configuration requires explicit approval.' }
           $null = $b.content | ConvertFrom-Json
           $dir  = Join-Path $env:APPDATA 'Claude'
           $path = Join-Path $dir 'claude_desktop_config.json'
@@ -398,10 +439,14 @@ try {
         $status = 500
         if ($msg -like 'Unauthorized:*') { $status = 401 }
         elseif ($msg -like '*requires explicit approval*' -or $msg -like '*requires administrator rights*') { $status = 403 }
+        elseif ($msg -like 'Arbitrary PowerShell execution is disabled.*' -or $msg -like 'MCP startup is disabled*') { $status = 403 }
         elseif ($msg -like 'Invalid Host header.*' -or $msg -like 'Invalid Origin header.*' -or $msg -like 'Only localhost requests are allowed.*') { $status = 403 }
-        elseif ($msg -like 'Action name is required.*' -or $msg -like 'Unknown action*' -or $msg -like 'Command is required.*') { $status = 400 }
+        elseif ($msg -like 'Action name is required.*' -or $msg -like 'Unknown action*' -or $msg -like 'A valid *' -or $msg -like 'A JSON request body is required.*' -or $msg -like 'The JSON request body must be an object.*' -or $msg -like 'Invalid JSON request body:*' -or $msg -like 'Request body must contain valid UTF-8.*' -or $msg -like 'Unexpected request field*' -or $msg -like 'Ollama * are required.*' -or $msg -like 'Ollama messages must*') { $status = 400 }
+        elseif ($msg -like 'Request body exceeds*') { $status = 413 }
         Send-Json $ctx @{ error = $msg } $status
-      } catch {}
+      } catch {
+        Write-Warning "Unable to send request error response: $($_.Exception.Message)"
+      }
     }
   }
 } finally {
