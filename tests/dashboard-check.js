@@ -31,10 +31,27 @@ assert(pageNav.size === pageSections.size, 'Navigation and page section counts d
 for (const page of pageNav) assert(pageSections.has(page), `Navigation target page-${page} is missing.`);
 for (const page of pageSections) assert(pageNav.has(page), `Page page-${page} has no navigation entry.`);
 
+const suggestionKeys = new Set([...script.matchAll(/^\s{6}([a-z]+): \[/gm)].map((match) => match[1]));
+for (const page of pageNav) assert(suggestionKeys.has(page), `Page ${page} has no contextual safe tip.`);
+assert(/S\.showSuggestions = S\.showSuggestions !== false/.test(script), 'Suggestions preference is not safely defaulted.');
+assert(/accentSelect/.test(html) && /suggestionsToggle/.test(html), 'Appearance customization controls are missing.');
+assert(/key !== 'token'/.test(script) && !/cloudKey\s*:/.test(script), 'Appearance preferences must not persist secrets.');
+
 const domIds = new Set([...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]));
+assert(domIds.size === [...html.matchAll(/\bid="([^"]+)"/g)].length, 'Dashboard contains duplicate DOM IDs.');
 for (const [, id] of script.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)) {
   if (id !== 'toast') assert(domIds.has(id), `Dashboard script references missing element #${id}.`);
 }
+
+for (const id of ['cpuCores', 'cpuThreads', 'cpuMaxMHz', 'chartSummary', 'suggestionsOpen', 'overviewLocalSummary', 'localSummary']) {
+  assert(domIds.has(id), `Redesigned dashboard is missing #${id}.`);
+}
+assert(/Suggestions for you/.test(html), 'Overview suggestions are missing.');
+assert(/Local AI server/.test(html) && /Skill library/.test(html), 'Local AI server or skill library redesign is missing.');
+assert(/CPU time \(s\)/.test(html), 'Process CPU usage is not labeled with its actual cumulative-time unit.');
+const linkedPages = [...html.matchAll(/data-open-page="([^"]+)"/g)].map((match) => match[1]).filter((page) => !page.includes('${'));
+for (const page of linkedPages) assert(pageNav.has(page), `Dashboard quick link points to unknown page ${page}.`);
+assert(/NumberOfCores/.test(bridge) && /NumberOfLogicalProcessors/.test(bridge) && /MaxClockSpeed/.test(bridge), 'Bridge does not request processor topology and maximum clock details.');
 
 const dashboardRoutes = new Set([...script.matchAll(/\bapi\(['"](\/api\/[^'"]+)['"]/g)].map((match) => match[1]));
 const bridgeRoutes = new Set([...bridge.matchAll(/path == ["'](\/api\/[^"']+)["']/g)].map((match) => match[1]));
