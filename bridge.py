@@ -303,6 +303,16 @@ def read_json_body(handler: BaseHTTPRequestHandler) -> dict[str, Any]:
     if length < 0:
         raise BridgeError(400, "Invalid Content-Length header.")
     if length > MAX_REQUEST_BYTES:
+        if length == MAX_REQUEST_BYTES + 1:
+            remaining = length
+            while remaining:
+                chunk = handler.rfile.read(min(65536, remaining))
+                if not chunk:
+                    handler.close_connection = True
+                    break
+                remaining -= len(chunk)
+        else:
+            handler.close_connection = True
         raise BridgeError(413, "Request body exceeds the 1 MiB limit.")
     body_bytes = handler.rfile.read(length)
     if len(body_bytes) != length:
@@ -528,6 +538,8 @@ class BridgeRequestHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
+        if self.close_connection:
+            self.send_header("Connection", "close")
         origin = self.headers.get("Origin")
         if origin and origin.lower() != "null":
             self.send_header("Access-Control-Allow-Origin", origin)
@@ -610,11 +622,15 @@ class BridgeRequestHandler(BaseHTTPRequestHandler):
                 "$processors = @(Get-CimInstance Win32_Processor); "
                 "$cpu = ($processors | Measure-Object LoadPercentage -Average).Average; "
                 "$cpuName = ($processors | Select-Object -First 1).Name; "
+                "$cpuCores = ($processors | Measure-Object NumberOfCores -Sum).Sum; "
+                "$cpuThreads = ($processors | Measure-Object NumberOfLogicalProcessors -Sum).Sum; "
+                "$cpuMaxMHz = ($processors | Measure-Object MaxClockSpeed -Maximum).Maximum; "
                 "$disks = @(Get-CimInstance Win32_LogicalDisk -Filter 'DriveType=3' | ForEach-Object { "
                 "@{ name = $_.DeviceID; totalGB = [math]::Round($_.Size / 1GB, 1); "
                 "freeGB = [math]::Round($_.FreeSpace / 1GB, 1) } }); "
                 "[ordered]@{ host = $env:COMPUTERNAME; user = $env:USERNAME; admin = $false; "
                 "os = $os.Caption; build = $os.BuildNumber; cpuName = $cpuName; cpu = [int]$cpu; "
+                "cpuCores = [int]$cpuCores; cpuThreads = [int]$cpuThreads; cpuMaxMHz = [int]$cpuMaxMHz; "
                 "ramTotalGB = [math]::Round($os.TotalVisibleMemorySize / 1MB, 1); "
                 "ramFreeGB = [math]::Round($os.FreePhysicalMemory / 1MB, 1); "
                 "uptimeHours = [math]::Round(((Get-Date) - $os.LastBootUpTime).TotalHours, 1); "
