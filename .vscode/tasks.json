@@ -4,20 +4,17 @@
         {
             "label": "Helpyard: Start Bridge",
             "type": "process",
-            "command": "${env:WINDIR}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+            "command": "py",
             "args": [
-                "-NoProfile",
-                "-ExecutionPolicy",
-                "Bypass",
-                "-File",
-                "${workspaceFolder}\\bridge.ps1",
-                "-OpenDashboard"
+                "-3",
+                "${workspaceFolder}\\bridge.py",
+                "--open-browser"
             ],
             "problemMatcher": [],
             "presentation": {
                 "echo": true,
                 "reveal": "always",
-                "focus": true,
+                "focus": false,
                 "panel": "dedicated",
                 "clear": false
             }
