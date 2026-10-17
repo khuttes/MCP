@@ -48,6 +48,16 @@ for (const id of ['cpuCores', 'cpuThreads', 'cpuMaxMHz', 'chartSummary', 'sugges
 }
 assert(/Suggestions for you/.test(html), 'Overview suggestions are missing.');
 assert(/Local AI server/.test(html) && /Skill library/.test(html), 'Local AI server or skill library redesign is missing.');
+for (const id of ['skillSearch', 'skillStatus', 'skillForm', 'skillName', 'skillCategory', 'skillInstructions', 'skillState', 'newSkillBtn']) {
+  assert(domIds.has(id), `Skills Manager is missing #${id}.`);
+}
+assert(/\/api\/skills/.test(script) && /action: 'run'/.test(script) && /action: 'pin'/.test(script), 'Skills Manager is missing its authenticated read-only Run or Pin operation.');
+assert(/esc\(skill\.instructions\)/.test(script), 'Saved skill guidance is not escaped before rendering.');
+assert(/custom skills.*cannot be run, do not change permissions/i.test(html), 'Skills Manager does not disclose that custom guidance is non-executable.');
+for (const skill of ['Show IP addresses', 'Top memory apps', 'Disk usage', 'Installed apps', 'Open ports', 'Startup programs', 'Defender status', 'Wi-Fi status', 'GPU info', 'Battery', 'Recent updates', 'Dev tool versions', 'Ollama models']) {
+  assert(bridge.includes(skill), `Built-in diagnostic ${skill} is missing from the bridge catalog.`);
+}
+assert(/def run_skill_check\(/.test(bridge) && /RUNNABLE_SKILL_IDS/.test(bridge), 'Skill execution is not bound to the backend allowlist.');
 assert(/CPU time \(s\)/.test(html), 'Process CPU usage is not labeled with its actual cumulative-time unit.');
 const linkedPages = [...html.matchAll(/data-open-page="([^"]+)"/g)].map((match) => match[1]).filter((page) => !page.includes('${'));
 for (const page of linkedPages) assert(pageNav.has(page), `Dashboard quick link points to unknown page ${page}.`);
