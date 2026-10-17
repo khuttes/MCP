@@ -83,13 +83,15 @@ class BridgeHTTPTests(unittest.TestCase):
         self.assertEqual(invalid_code, 401)
         expiry = self.server.bootstrap_expires
         self.server.bootstrap_expires = 0
-        expired, _ = self.json_request(
-            "/api/bootstrap",
-            "POST",
-            {"code": self.code},
-            origin=self.base_url,
-        )
-        self.server.bootstrap_expires = expiry
+        try:
+            expired, _ = self.json_request(
+                "/api/bootstrap",
+                "POST",
+                {"code": self.code},
+                origin=self.base_url,
+            )
+        finally:
+            self.server.bootstrap_expires = expiry
         self.assertEqual(expired, 410)
         status, payload = self.json_request(
             "/api/bootstrap",
