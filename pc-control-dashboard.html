@@ -29,6 +29,104 @@
     @media (prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
     @media (max-width:640px){.main{padding:16px}.topbar{align-items:flex-start;flex-direction:column}.composer{flex-direction:column}.message{max-width:100%}}
   </style>
+  <style>
+    :root{--radius:16px;--shadow:0 14px 36px rgba(3,11,20,.22);--surface:#101d2d;--surface-raised:#15253a}
+    body{background-color:var(--bg);letter-spacing:.005em}
+    .sidebar{background:rgba(7,17,29,.97);backdrop-filter:blur(18px)}
+    .brand{padding-bottom:20px}
+    .logo{width:40px;height:40px;border-radius:14px}
+    .nav button{min-height:42px;transition:background-color .18s ease,border-color .18s ease,color .18s ease}
+    .main{width:min(100%,1600px);margin:0 auto;padding:28px clamp(18px,3vw,44px) 36px}
+    .topbar{align-items:flex-start;padding-bottom:22px;margin-bottom:22px}
+    .title-wrap h1{font-size:clamp(1.9rem,3vw,2.55rem);letter-spacing:-.035em}
+    .title-wrap p{font-size:14px}
+    .card{background:linear-gradient(150deg,rgba(23,39,59,.95),rgba(14,26,41,.96));box-shadow:var(--shadow);transition:border-color .18s ease,transform .18s ease}
+    .card:hover{border-color:rgba(148,163,184,.27)}
+    .grid{gap:18px}
+    .grid.four .card{min-height:148px}
+    .card h3{letter-spacing:.1em}
+    .big{letter-spacing:-.04em}
+    .ring{background:conic-gradient(var(--cyan) calc(var(--p) * 1%),rgba(255,255,255,.07) 0)}
+    .btn{font-weight:600}
+    .table-wrap{border:1px solid var(--line);border-radius:12px}
+    th{position:sticky;top:0;background:var(--surface)}
+    .suggestion-portal{display:flex;align-items:center;gap:14px;margin:0 0 18px;padding:13px 16px;border:1px solid color-mix(in srgb,var(--cyan) 32%,transparent);border-radius:14px;background:linear-gradient(100deg,color-mix(in srgb,var(--cyan) 10%,transparent),color-mix(in srgb,var(--violet) 6%,transparent))}
+    .suggestion-portal[hidden]{display:none}
+    .suggestion-label{flex:none;color:var(--cyan);font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+    .suggestion-copy{flex:1;margin:0;font-size:13px;line-height:1.5}
+    .suggestion-portal .btn{flex:none}
+    body[data-theme="light"]{--bg:#eaf0f7;--surface:#f7faff;--surface-raised:#fff;--line:rgba(51,72,99,.17);--text:#182538;--muted:#586b82;--shadow:0 14px 34px rgba(37,61,88,.09)}
+    body[data-theme="light"] .sidebar{background:rgba(234,241,248,.97)}
+    body[data-theme="light"] .card{background:linear-gradient(150deg,#fff,#f8fbff)}
+    body[data-theme="light"] th{background:#f7faff}
+    body[data-theme="light"] .suggestion-portal{color:#182538}
+    @media (max-width:900px){.sidebar{position:relative;height:auto;padding:14px}.nav{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:2px}.nav-section{grid-column:1/-1}.status-box{margin-top:12px}.main{padding-top:22px}}
+    @media (max-width:640px){.suggestion-portal{align-items:flex-start;flex-wrap:wrap}.suggestion-copy{flex-basis:calc(100% - 110px)}.suggestion-portal .btn{margin-left:auto}.grid.four .card{min-height:unset}}
+  </style>
+  <style>
+    :root{--surface:#101d2d;--surface-raised:#15253a;--radius:18px}
+    body{letter-spacing:.005em}
+    .shell,.sidebar,.main{min-width:0}
+    .main{max-width:1680px;width:100%;margin:0 auto;padding:28px clamp(18px,3vw,48px) 42px}
+    .sidebar{z-index:2}
+    .topbar{align-items:flex-start}
+    .title-wrap h1{font-size:clamp(1.7rem,2.2vw,2.35rem);letter-spacing:-.04em}
+    .title-wrap p{font-size:14px}
+    .overview-intro{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;margin:6px 0 18px}
+    .overview-intro h2{margin:0;font-size:clamp(1.45rem,2vw,2rem);letter-spacing:-.04em}
+    .overview-intro p{margin:6px 0 0;color:var(--muted);font-size:13px}
+    .overview-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+    .metric-card{position:relative;overflow:hidden;min-height:160px}
+    .metric-card::after{content:"";position:absolute;width:150px;height:150px;right:-75px;top:-78px;border-radius:50%;background:var(--glow,rgba(76,201,240,.10));pointer-events:none}
+    .metric-card.cpu{--glow:rgba(76,201,240,.12)}
+    .metric-card.memory{--glow:rgba(124,123,255,.14)}
+    .metric-card .metric-label{font-size:11px;font-weight:750;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+    .metric-card .metric-main{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:14px}
+    .metric-card .big{font-size:clamp(1.6rem,2vw,2.15rem);letter-spacing:-.04em}
+    .metric-card .metric-detail{margin-top:5px;color:var(--muted);font-size:12px;line-height:1.5}
+    .metric-card .ring{width:68px;height:68px;border-width:8px}
+    .metric-card .ring::before{inset:6px}
+    .metric-card .ring span{font-size:12px}
+    .overview-two{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(260px,1fr);gap:14px;margin-top:14px}
+    .overview-three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:14px}
+    .overview-card{min-width:0;padding:20px}
+    .overview-card h3{margin-bottom:8px}
+    .overview-card .panel-title{margin-bottom:6px}
+    .chart-wrap{position:relative;width:100%;height:250px;margin-top:14px}
+    #chart{width:100%;height:100%;display:block;border:1px solid var(--line);border-radius:14px;background:rgba(4,10,18,.2)}
+    .chart-legend{display:flex;align-items:center;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:12px}
+    .chart-key{display:inline-flex;align-items:center;gap:7px}
+    .chart-key::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--key)}
+    .processor-specs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:18px}
+    .spec{padding:11px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025)}
+    .spec strong{display:block;font-size:16px}
+    .spec span{display:block;margin-top:4px;color:var(--muted);font-size:11px}
+    .disk-row{padding:12px 0;border-bottom:1px solid var(--line)}
+    .disk-row:last-child{border-bottom:0}
+    .disk-progress{height:8px;margin-top:9px}
+    .suggestion-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+    .suggestion-card{display:flex;flex-direction:column;align-items:flex-start;gap:10px;min-height:150px;padding:16px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.025)}
+    .suggestion-card p{margin:0;color:var(--muted);font-size:12px;line-height:1.55;flex:1}
+    .local-server{display:grid;grid-template-columns:1fr auto;align-items:center;gap:14px;padding:16px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.025)}
+    .local-server h4{margin:0 0 5px}
+    .local-server p{margin:0;color:var(--muted);font-size:12px;line-height:1.5}
+    .skills-intro{max-width:760px;color:var(--muted);line-height:1.65}
+    .skill-card{display:flex;flex-direction:column;align-items:flex-start;min-height:210px}
+    .skill-card .skill-category{margin-bottom:12px;color:var(--cyan);font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+    .skill-card h4{font-size:16px}
+    .skill-card p{flex:1;line-height:1.55}
+    .skill-card .pill{margin-top:10px}
+    .portal-shortcut{display:flex;align-items:center;gap:8px;margin-top:12px;color:var(--cyan);font-size:12px;font-weight:700}
+    .portal-shortcut:hover{text-decoration:underline}
+    body[data-theme="light"] .metric-card,body[data-theme="light"] .suggestion-card,body[data-theme="light"] .local-server{background:rgba(255,255,255,.72)}
+    body[data-theme="light"] #chart{background:#f8fbff}
+    @media(max-width:900px){.shell{grid-template-columns:minmax(0,1fr)}}
+    @media(max-width:1100px){.overview-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.overview-three{grid-template-columns:repeat(2,minmax(0,1fr))}.overview-two{grid-template-columns:minmax(0,1.3fr) minmax(250px,1fr)}}
+    @media(max-width:760px){.overview-two,.overview-three{grid-template-columns:1fr}.suggestion-grid{grid-template-columns:1fr}.chart-wrap{height:220px}.overview-intro{align-items:flex-start;flex-direction:column}}
+    @media(max-width:640px){.nav{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:480px){.overview-metrics{grid-template-columns:1fr}.processor-specs{grid-template-columns:1fr 1fr}.overview-card{padding:16px}.toolbar{justify-content:flex-start}}
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}
+  </style>
 </head>
 <body>
   <div class="shell">
@@ -37,7 +135,7 @@
         <div class="logo">H</div>
         <div class="brand-text">
           <strong>Helpyard</strong>
-          <small>Cyber lab</small>
+          <small>Workstation console</small>
         </div>
       </div>
       <nav class="nav">
@@ -72,29 +170,66 @@
         </div>
         <div class="toolbar">
           <span id="adminBadge" class="badge">Status</span>
+          <button id="suggestionsOpen" class="btn" type="button" aria-label="Open suggestions for the current section">✦ Suggestions</button>
           <button id="themeToggle" class="btn">🌓 Theme</button>
         </div>
       </header>
 
       <div id="storageNotice" class="notice info" role="status" aria-live="polite"></div>
       <div id="appNotice" class="notice" role="status" aria-live="polite"></div>
+      <aside id="suggestionPortal" class="suggestion-portal" role="note" aria-live="polite">
+        <span class="suggestion-label">Safe tip</span>
+        <p id="suggestionText" class="suggestion-copy"></p>
+        <button id="suggestionLink" class="btn sm" type="button"></button>
+      </aside>
 
       <section id="page-overview" class="page active">
-        <div class="grid four">
-          <div class="card"><h3>CPU</h3><div class="metric"><div class="ring" id="ringCpu" style="--p:0"><span id="cpuValue">—</span></div><div><div class="muted" id="cpuName">Waiting for bridge data…</div><div class="big" id="cpuLoad">—</div></div></div></div>
-          <div class="card"><h3>Memory</h3><div class="metric"><div class="ring" id="ringRam" style="--p:0"><span id="ramValue">—</span></div><div><div class="muted" id="ramName">Waiting for bridge data…</div><div class="big" id="ramSummary">—</div></div></div></div>
-          <div class="card"><h3>Uptime</h3><div class="big" id="uptimeValue">—</div><div class="muted" id="uptimeMeta">System uptime</div></div>
-          <div class="card"><h3>Processes</h3><div class="big" id="procCount">—</div><div class="muted" id="hostMeta">Machine state</div></div>
+        <div class="overview-intro">
+          <div><h2>System overview</h2><p>Live workstation health, processor details, and recent resource trends.</p></div>
+          <span id="overviewHostBadge" class="badge">Waiting for local system</span>
         </div>
-        <div class="grid two" style="margin-top:16px;">
-          <div class="card"><div class="panel-title"><h3>CPU &amp; memory history</h3></div><div class="muted" style="font-size:12px;margin-bottom:8px;">Live samples · percent scale 0–100 · refreshes while Overview is open</div><div class="row" style="font-size:12px;margin-bottom:8px;"><span style="color:var(--cyan)">● CPU</span><span style="color:var(--violet)">● Memory</span><span class="muted">Gaps indicate missed samples</span></div><canvas id="chart" width="600" height="200" aria-label="CPU and memory percent history, scale zero to one hundred" role="img" style="width:100%;height:200px;display:block;border-radius:12px;background:rgba(4,10,18,.28);border:1px solid var(--line);"></canvas></div>
-          <div class="card"><h3>Disk capacity</h3><div id="diskList" class="stack"><div class="muted">Waiting for bridge data…</div></div></div>
+        <div class="overview-metrics">
+          <article class="card metric-card cpu">
+            <div class="metric-label">Processor activity</div>
+            <div class="metric-main"><div><div class="big" id="cpuLoad">—</div><div class="metric-detail" id="cpuName">Waiting for bridge data…</div></div><div class="ring" id="ringCpu" style="--p:0"><span id="cpuValue">—</span></div></div>
+          </article>
+          <article class="card metric-card memory">
+            <div class="metric-label">Memory in use</div>
+            <div class="metric-main"><div><div class="big" id="ramValue">—</div><div class="metric-detail" id="ramSummary">Waiting for bridge data…</div></div><div class="ring" id="ringRam" style="--p:0"><span id="ramName">RAM</span></div></div>
+          </article>
+          <article class="card metric-card">
+            <div class="metric-label">System uptime</div><div class="metric-main"><div><div class="big" id="uptimeValue">—</div><div class="metric-detail" id="uptimeMeta">System uptime</div></div><span class="pill">Since boot</span></div>
+          </article>
+          <article class="card metric-card">
+            <div class="metric-label">Running processes</div><div class="metric-main"><div><div class="big" id="procCount">—</div><div class="metric-detail" id="hostMeta">Machine state</div></div><button class="btn sm" type="button" data-open-page="processes">Inspect</button></div>
+          </article>
         </div>
-        <div class="grid three" style="margin-top:16px;">
-          <div class="card"><h3>Local AI</h3><div id="localSummary" class="muted">Checking Ollama…</div><div class="rows" id="localModelList" style="margin-top:12px;"></div></div>
-          <div class="card"><h3>Git &amp; tooling</h3><ul class="list" id="toolList"></ul></div>
-          <div class="card"><h3>Operational status</h3><ul class="list" id="actionList"></ul></div>
+        <div class="overview-two">
+          <article class="card overview-card">
+            <div class="panel-title"><h3>Recent performance</h3><span id="historyWindow" class="pill">Last ~2 minutes</span></div>
+            <div class="row chart-legend"><span class="chart-key" style="--key:var(--cyan)">CPU activity</span><span class="chart-key" style="--key:var(--violet)">Memory used</span><span>5-second samples · session only</span></div>
+            <div class="chart-wrap"><canvas id="chart" width="900" height="300" aria-label="CPU and memory history, percent scale zero to one hundred" role="img"></canvas></div>
+            <p id="chartSummary" class="muted" aria-live="polite">No performance samples yet. Connect the local bridge to begin.</p>
+          </article>
+          <article class="card overview-card">
+            <div class="panel-title"><h3>Processor</h3><span class="pill">Windows system metrics</span></div>
+            <p id="processorName" class="muted">Processor details will appear when connected.</p>
+            <div class="processor-specs"><div class="spec"><strong id="cpuCores">—</strong><span>Physical cores</span></div><div class="spec"><strong id="cpuThreads">—</strong><span>Logical processors</span></div><div class="spec"><strong id="cpuMaxMHz">—</strong><span>Maximum clock</span></div></div>
+            <div class="portal-shortcut"><button class="btn sm" type="button" data-open-page="processes">View process activity</button></div>
+          </article>
         </div>
+        <div class="overview-two">
+          <article class="card overview-card"><div class="panel-title"><h3>Storage capacity</h3><span class="pill">Local fixed disks</span></div><div id="diskList" class="stack"><div class="muted">Waiting for bridge data…</div></div></article>
+          <article class="card overview-card"><div class="panel-title"><h3>Local AI server</h3><span id="overviewOllamaBadge" class="badge">Checking</span></div><div id="overviewLocalSummary" class="muted">Checking Ollama…</div><div id="overviewLocalModelList" class="rows" style="margin-top:12px;"></div><button class="btn sm" style="margin-top:14px;" type="button" data-open-page="local">Open Local AI</button></article>
+        </div>
+        <article class="card overview-card" style="margin-top:14px;">
+          <div class="panel-title"><h3>Suggestions for you</h3><button id="overviewSuggestions" class="btn sm" type="button">Show section tip</button></div>
+          <div class="suggestion-grid">
+            <div class="suggestion-card"><strong>Check system load</strong><p>Compare current processor activity and memory use with the recent sample window.</p><button class="btn sm" type="button" data-open-page="processes">Explore processes</button></div>
+            <div class="suggestion-card"><strong>Review local models</strong><p>Check whether the local Ollama service responds and which models are available.</p><button class="btn sm" type="button" data-open-page="local">View Local AI</button></div>
+            <div class="suggestion-card"><strong>Personalize your view</strong><p>Choose a theme, accent color, and whether contextual tips stay visible.</p><button class="btn sm" type="button" data-open-page="settings">Open settings</button></div>
+          </div>
+        </article>
       </section>
 
       <section id="page-projects" class="page">
@@ -109,7 +244,7 @@
       </section>
 
       <section id="page-processes" class="page">
-        <div class="card"><div class="panel-title"><h3>Process monitor</h3><div class="row"><input id="procFilter" placeholder="Filter process names" style="width:220px;" /><button class="btn sm" id="refreshProcBtn">↻ Refresh</button></div></div><div class="table-wrap"><table><thead><tr><th>Name</th><th>PID</th><th>CPU</th><th>Memory MB</th><th></th></tr></thead><tbody id="procBody"></tbody></table></div></div>
+        <div class="card"><div class="panel-title"><h3>Process monitor</h3><div class="row"><input id="procFilter" placeholder="Filter process names" style="width:220px;" /><button class="btn sm" id="refreshProcBtn">↻ Refresh</button></div></div><p class="muted">CPU time is cumulative processor time for each process, not a live utilization percentage.</p><div class="table-wrap"><table><thead><tr><th>Name</th><th>PID</th><th>CPU time (s)</th><th>Memory MB</th><th></th></tr></thead><tbody id="procBody"></tbody></table></div></div>
       </section>
 
       <section id="page-services" class="page">
@@ -120,17 +255,29 @@
         <div class="card"><h3>Terminal / Tasks</h3><p class="muted">Arbitrary PowerShell execution is disabled by the bridge safety policy. This panel will be replaced by reviewed, named tasks.</p><div class="field"><textarea id="cmdInput" rows="5" placeholder="Shell execution is disabled" disabled></textarea></div><div class="row" style="margin:12px 0 10px;"><button id="runCmdBtn" class="btn primary" disabled>▶ Run disabled</button><button id="clearCmdBtn" class="btn">Clear</button><span id="cmdStatus" class="badge warn">Policy blocked</span></div><pre id="cmdOutput" class="output" aria-live="polite">No command has been executed.</pre></div>
       </section>
 
-      <section id="page-local" class="page"><div class="card"><h3>Local AI</h3><div class="row" style="margin-bottom:14px;"><select id="ollamaModel" style="width:300px;"></select><button id="refreshModelsBtn" class="btn">↻ Refresh</button><span id="ollamaBadge" class="badge">Ollama</span></div><div id="localChat" class="chat"></div></div></section>
+      <section id="page-local" class="page">
+        <div class="grid two">
+          <article class="card">
+            <div class="panel-title"><h3>Local AI server</h3><span id="ollamaBadge" class="badge">Checking</span></div>
+            <div class="local-server"><div><h4>Ollama service</h4><p id="localSummary">Checking the locally configured Ollama endpoint…</p></div><button id="refreshModelsBtn" class="btn" type="button">↻ Check server</button></div>
+            <p id="ollamaEndpointNote" class="feature-status">The bridge connects to the configured local Ollama endpoint. No external model files are downloaded by this dashboard.</p>
+            <div class="panel-title" style="margin-top:20px;"><h3>Installed models</h3><label class="muted" for="ollamaModel">Choose chat model</label></div>
+            <select id="ollamaModel" aria-label="Choose installed Ollama model"></select>
+            <div id="localModelList" class="rows" style="margin-top:12px;"></div>
+          </article>
+          <article class="card"><div class="panel-title"><h3>Local chat</h3><span class="pill">Runs through bridge</span></div><p class="muted">Prompts are sent to the configured local Ollama service. Model availability and response speed depend on your installed model and hardware.</p><div id="localChat" class="chat"></div></article>
+        </div>
+      </section>
 
       <section id="page-cloud" class="page"><div class="card"><h3>Cloud AI</h3><p class="feature-status">Cloud requests leave this device and are sent directly to the selected provider. Keys are used only in memory for this browser session and are not saved.</p><div class="grid two"><div class="field"><label>Provider</label><select id="cloudProvider"><option value="anthropic">Anthropic</option><option value="openai">OpenAI</option><option value="gemini">Gemini</option></select></div><div class="field"><label>Model</label><input id="cloudModel" placeholder="Model name" /></div></div><div class="field" style="margin-top:12px;"><label>API key</label><input id="cloudKey" type="password" autocomplete="off" placeholder="Used for this session only; not saved" /></div><div id="cloudChat" class="chat" style="margin-top:14px;"></div></div></section>
 
       <section id="page-mcp" class="page"><div class="card"><h3>MCP servers</h3><div id="mcpList" class="grid three"></div></div></section>
 
-      <section id="page-skills" class="page"><div class="card"><h3>Skills</h3><div id="skillList" class="grid three"></div></div></section>
+      <section id="page-skills" class="page"><div class="card"><h3>Skill library</h3><p class="skills-intro">Curated read-only ideas for common workstation checks. These entries are examples only: the project does not download, install, or execute skills.</p><div id="skillList" class="grid three"></div></div></section>
 
       <section id="page-security" class="page"><div class="grid two"><div class="card"><h3>Security posture</h3><ul class="list" id="securityList"></ul></div><div class="card"><h3>Audit log</h3><ul class="list" id="auditList"></ul></div></div></section>
 
-      <section id="page-settings" class="page"><div class="grid two"><div class="card"><h3>Bridge connection</h3><div class="field"><label>Bridge URL</label><input id="bridgeUrl" value="http://127.0.0.1:8787" /></div><div class="field" style="margin-top:12px;"><label>Session token (normally automatic)</label><input id="bridgeToken" type="password" placeholder="Filled only for manual connection" autocomplete="off" /></div><div class="row" style="margin-top:14px;"><button id="saveBridgeBtn" class="btn primary">Save &amp; connect</button><button id="clearDataBtn" class="btn danger">Reset browser data</button></div></div><div class="card"><h3>How to start</h3><ol class="muted" style="padding-left:18px;line-height:1.8;margin:0;">
+      <section id="page-settings" class="page"><div class="grid two"><div class="card"><h3>Dashboard appearance</h3><div class="field"><label for="accentSelect">Accent color</label><select id="accentSelect"><option value="cyan">Arctic cyan</option><option value="violet">Indigo violet</option><option value="emerald">Emerald</option><option value="amber">Warm amber</option></select></div><div class="row" style="margin-top:14px;"><label class="row" for="suggestionsToggle"><input id="suggestionsToggle" type="checkbox" style="width:auto;" /> Show safe tips across sections</label></div><p class="muted">Preferences stay in this browser. Bridge tokens and cloud API keys are never saved.</p></div><div class="card"><h3>Bridge connection</h3><div class="field"><label>Bridge URL</label><input id="bridgeUrl" value="http://127.0.0.1:8787" /></div><div class="field" style="margin-top:12px;"><label>Session token (normally automatic)</label><input id="bridgeToken" type="password" placeholder="Filled only for manual connection" autocomplete="off" /></div><div class="row" style="margin-top:14px;"><button id="saveBridgeBtn" class="btn primary">Save &amp; connect</button><button id="clearDataBtn" class="btn danger">Reset browser data</button></div></div><div class="card"><h3>How to start</h3><ol class="muted" style="padding-left:18px;line-height:1.8;margin:0;">
             <li>Double-click <code>Start-Helpyard.bat</code> in the project folder.</li><li>The launcher starts the local Python bridge, waits for it, and opens this page on the selected port.</li><li>The browser completes a one-time, short-lived local connection automatically; the token is kept in memory only.</li><li>Keep the minimized Helpyard window open. Close it or press Ctrl+C there to stop the bridge.</li><li>Python 3.10+ is required. The bridge uses Python's standard library; no pip packages are needed. Ollama is optional.</li></ol></div></div></section>
     </main>
   </div>
@@ -139,18 +286,24 @@
     const $ = (sel, parent = document) => parent.querySelector(sel);
     const $$ = (sel, parent = document) => [...parent.querySelectorAll(sel)];
     const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
-    const defaultState = { theme: 'dark', url: 'http://127.0.0.1:8787', token: '', ollamaModel: '', cloudProvider: 'anthropic', cloudModel: 'claude-sonnet-4', systemPrompt: 'Act as a careful local engineering assistant. Prefer evidence, safe actions, and explicit approval for anything that changes the system.' };
+    const defaultState = { theme: 'dark', accent: 'cyan', showSuggestions: true, url: 'http://127.0.0.1:8787', token: '', ollamaModel: '', cloudProvider: 'anthropic', cloudModel: 'claude-sonnet-4', systemPrompt: 'Act as a careful local engineering assistant. Prefer evidence, safe actions, and explicit approval for anything that changes the system.' };
     let storageWarning = '';
     function loadSavedState() { try { const parsed = JSON.parse(localStorage.getItem('helpyard-state') || '{}'); if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Saved browser state must be an object.'); const warnings = []; if (parsed.cloudKey) warnings.push('A previously saved cloud API key was discarded; re-enter it for this session.'); if (parsed.token) warnings.push('A previously saved bridge token was discarded; enter the current bridge token in Settings.'); if (warnings.length) storageWarning = warnings.join(' '); return parsed; } catch (err) { storageWarning = 'Saved browser settings could not be read. Defaults are active; use Settings to reconnect. Details: ' + err.message; return {}; } }
     const savedState = loadSavedState();
     let S = { ...defaultState, ...Object.fromEntries(Object.entries(savedState).filter(([key]) => Object.prototype.hasOwnProperty.call(defaultState, key))) };
     S.token = '';
     if (!['dark', 'light'].includes(S.theme)) S.theme = defaultState.theme;
+    if (!['cyan', 'violet', 'emerald', 'amber'].includes(S.accent)) S.accent = defaultState.accent;
+    S.showSuggestions = S.showSuggestions !== false;
     const save = () => { try { const persisted = Object.fromEntries(Object.entries(S).filter(([key]) => key !== 'token' && Object.prototype.hasOwnProperty.call(defaultState, key))); localStorage.setItem('helpyard-state', JSON.stringify(persisted)); return true; } catch (err) { toast('Settings could not be saved to browser storage: ' + err.message, 'error'); return false; } };
     const setTheme = () => {
       document.documentElement.style.colorScheme = S.theme;
       document.body.dataset.theme = S.theme;
       document.body.style.background = S.theme === 'dark' ? 'radial-gradient(circle at top, rgba(76,201,240,.12), transparent 35%), linear-gradient(180deg, #07111d, #0d1b2a)' : 'radial-gradient(circle at top, rgba(76,201,240,.08), transparent 35%), linear-gradient(180deg, #edf4ff, #dfe9f7)';
+      const accents = { cyan: ['#4cc9f0', '#7c7bff'], violet: ['#a78bfa', '#6366f1'], emerald: ['#34d399', '#14b8a6'], amber: ['#fbbf24', '#f97316'] };
+      const [primary, secondary] = accents[S.accent] || accents.cyan;
+      document.documentElement.style.setProperty('--cyan', primary);
+      document.documentElement.style.setProperty('--violet', secondary);
     };
     setTheme();
     function toast(msg, type = '') { const current = document.getElementById('toast'); if (!current) { const box = document.createElement('div'); box.id = 'toast'; box.style.position = 'fixed'; box.style.right = '16px'; box.style.bottom = '16px'; box.style.zIndex = '100'; document.body.appendChild(box); } const container = document.getElementById('toast'); const node = document.createElement('div'); node.textContent = msg; node.style.padding = '10px 14px'; node.style.borderRadius = '12px'; node.style.background = type === 'error' ? 'rgba(255,93,115,.12)' : 'rgba(61,220,151,.12)'; node.style.border = '1px solid ' + (type === 'error' ? 'rgba(255,93,115,.3)' : 'rgba(61,220,151,.3)'); node.style.color = '#edf6ff'; node.style.boxShadow = '0 18px 40px rgba(0,0,0,.25)'; container.appendChild(node); setTimeout(() => node.remove(), 2600); }
@@ -214,21 +367,199 @@
     function reportApiError(path, message) { showNotice(path + ': ' + message); if (path === '/api/stats') { window.cpuHistory = [...(window.cpuHistory || []), null]; window.ramHistory = [...(window.ramHistory || []), null]; while (window.cpuHistory.length > 24) window.cpuHistory.shift(); while (window.ramHistory.length > 24) window.ramHistory.shift(); drawHistory(); document.getElementById('lastRefresh').textContent = 'Metrics refresh failed; displayed values may be stale.'; } }
     function updateSidebar(connected, admin, host) { const badge = document.getElementById('sidebarState'); const dot = document.getElementById('sidebarStatus'); const hostBox = document.getElementById('sidebarHost'); if (connected) { badge.textContent = 'Connected'; dot.className = 'dot ok'; hostBox.textContent = host || 'Local machine'; } else { badge.textContent = 'Offline'; dot.className = 'dot'; hostBox.textContent = 'Bridge disconnected'; } const adminBadge = document.getElementById('adminBadge'); if (admin === true) { adminBadge.textContent = 'Administrator'; adminBadge.className = 'badge ok'; } else if (connected === false) { adminBadge.textContent = 'Offline'; adminBadge.className = 'badge bad'; } else { adminBadge.textContent = 'Standard user'; adminBadge.className = 'badge warn'; } }
     async function pingBridge() { if (!S.token) { updateSidebar(false, false, ''); return false; } try { const data = await api('/api/ping'); updateSidebar(true, !!data.admin, data.host || 'localhost'); return true; } catch (err) { updateSidebar(false, false, ''); return false; } }
-    function drawHistory() { const canvas = document.getElementById('chart'); if (!canvas) return; const ctx = canvas.getContext('2d'); const { width, height } = canvas; ctx.clearRect(0, 0, width, height); ctx.strokeStyle = 'rgba(148,163,184,.22)'; ctx.lineWidth = 1; for (let i = 0; i <= 4; i++) { const y = 15 + (height - 30) * (i / 4); ctx.beginPath(); ctx.moveTo(10, y); ctx.lineTo(width - 10, y); ctx.stroke(); } const cpu = window.cpuHistory || []; const ram = window.ramHistory || []; const draw = (data, color) => { if (!data.length) return; ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 2; let connected = false; data.forEach((value, index) => { if (typeof value !== 'number' || !Number.isFinite(value)) { connected = false; return; } const x = 20 + ((width - 40) * index) / Math.max(1, data.length - 1); const y = height - 20 - (value / 100) * (height - 40); if (connected) ctx.lineTo(x, y); else ctx.moveTo(x, y); connected = true; }); ctx.stroke(); }; draw(cpu, '#4cc9f0'); draw(ram, '#7c7bff'); }
-    async function loadStats() { try { const data = await api('/api/stats'); const ramUsed = Math.max(0, data.ramTotalGB - data.ramFreeGB); const ramPct = Math.min(100, Math.round((ramUsed / data.ramTotalGB) * 100 || 0)); const ringCpu = document.getElementById('ringCpu'); const ringRam = document.getElementById('ringRam'); ringCpu.style.setProperty('--p', Math.max(0, Math.min(100, Number(data.cpu || 0)))); ringRam.style.setProperty('--p', ramPct); document.getElementById('cpuValue').textContent = Math.max(0, Math.min(100, Number(data.cpu || 0))) + '%'; document.getElementById('ramValue').textContent = ramPct + '%'; document.getElementById('cpuLoad').textContent = Math.max(0, Math.min(100, Number(data.cpu || 0))) + '%'; document.getElementById('ramSummary').textContent = ramUsed.toFixed(1) + ' / ' + data.ramTotalGB + ' GB'; document.getElementById('cpuName').textContent = data.cpuName || 'CPU'; document.getElementById('ramName').textContent = 'RAM'; document.getElementById('uptimeValue').textContent = data.uptimeHours >= 24 ? (data.uptimeHours / 24).toFixed(1) + ' days' : data.uptimeHours + ' h'; document.getElementById('uptimeMeta').textContent = data.os || 'Windows'; document.getElementById('procCount').textContent = data.processCount || 0; document.getElementById('hostMeta').textContent = (data.host || 'Local machine') + ' · ' + (data.user || 'user'); window.cpuHistory = [...(window.cpuHistory || []), Math.max(0, Math.min(100, Number(data.cpu || 0)))]; window.ramHistory = [...(window.ramHistory || []), ramPct]; while ((window.cpuHistory || []).length > 24) { window.cpuHistory.shift(); } while ((window.ramHistory || []).length > 24) { window.ramHistory.shift(); } drawHistory(); const diskList = document.getElementById('diskList'); diskList.innerHTML = (data.disks || []).map((disk) => { const used = Number(disk.totalGB || 0) - Number(disk.freeGB || 0); const p = Number(disk.totalGB || 0) ? Math.min(100, Math.round((used / disk.totalGB) * 100)) : 0; return `<div><div class="row" style="justify-content:space-between; margin-bottom:6px;"><strong>${esc(disk.name)}</strong><span class="muted">${used.toFixed(0)} / ${Number(disk.totalGB || 0).toFixed(0)} GB</span></div><div class="progress"><span style="width:${p}%"></span></div></div>`; }).join('') || '<div class="muted">No disks reported.</div>'; } catch (err) { reportApiError('/api/stats', err.message); } }
+    function drawHistory() {
+      const canvas = document.getElementById('chart');
+      if (!canvas) return;
+      const bounds = canvas.getBoundingClientRect();
+      if (!bounds.width || !bounds.height) return;
+      const ratio = Math.max(1, window.devicePixelRatio || 1);
+      canvas.width = Math.round(bounds.width * ratio);
+      canvas.height = Math.round(bounds.height * ratio);
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      const width = bounds.width;
+      const height = bounds.height;
+      const inset = { left: 42, right: 14, top: 14, bottom: 30 };
+      const plotWidth = Math.max(1, width - inset.left - inset.right);
+      const plotHeight = Math.max(1, height - inset.top - inset.bottom);
+      const styles = getComputedStyle(document.body);
+      const muted = styles.getPropertyValue('--muted').trim() || '#90a3bd';
+      const line = styles.getPropertyValue('--line').trim() || 'rgba(148,163,184,.2)';
+      ctx.clearRect(0, 0, width, height);
+      ctx.font = '11px Segoe UI, system-ui, sans-serif';
+      ctx.textBaseline = 'middle';
+      ctx.lineWidth = 1;
+      [0, 25, 50, 75, 100].forEach((value) => {
+        const y = inset.top + plotHeight * (1 - value / 100);
+        ctx.beginPath();
+        ctx.strokeStyle = line;
+        ctx.moveTo(inset.left, y);
+        ctx.lineTo(width - inset.right, y);
+        ctx.stroke();
+        ctx.fillStyle = muted;
+        ctx.textAlign = 'right';
+        ctx.fillText(value + '%', inset.left - 9, y);
+      });
+      const cpu = window.cpuHistory || [];
+      const ram = window.ramHistory || [];
+      const length = Math.max(cpu.length, ram.length);
+      const xAt = (index) => inset.left + plotWidth * index / Math.max(1, length - 1);
+      const yAt = (value) => inset.top + plotHeight * (1 - value / 100);
+      const draw = (values, color) => {
+        ctx.beginPath();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2.5;
+        ctx.lineJoin = 'round';
+        let connected = false;
+        values.forEach((value, index) => {
+          if (typeof value !== 'number' || !Number.isFinite(value)) {
+            connected = false;
+            return;
+          }
+          const x = xAt(index);
+          const y = yAt(Math.max(0, Math.min(100, value)));
+          if (connected) ctx.lineTo(x, y);
+          else ctx.moveTo(x, y);
+          connected = true;
+        });
+        ctx.stroke();
+      };
+      draw(cpu, styles.getPropertyValue('--cyan').trim() || '#4cc9f0');
+      draw(ram, styles.getPropertyValue('--violet').trim() || '#7c7bff');
+      const totalSeconds = Math.max(0, (length - 1) * 5);
+      const formatAge = (seconds) => seconds >= 60 ? '-' + Math.round(seconds / 60) + 'm' : '-' + Math.round(seconds) + 's';
+      const xLabels = [
+        { x: inset.left, text: totalSeconds ? formatAge(totalSeconds) : 'Start', align: 'left' },
+        { x: inset.left + plotWidth / 2, text: totalSeconds ? formatAge(totalSeconds / 2) : '', align: 'center' },
+        { x: width - inset.right, text: 'Now', align: 'right' }
+      ];
+      xLabels.forEach(({ x, text, align }) => {
+        if (!text) return;
+        ctx.fillStyle = muted;
+        ctx.textAlign = align;
+        ctx.fillText(text, x, height - 12);
+      });
+      document.getElementById('historyWindow').textContent = length > 1 ? 'Last ' + (totalSeconds >= 60 ? Math.round(totalSeconds / 60) + ' min' : totalSeconds + ' sec') : 'Waiting for samples';
+    }
+    window.addEventListener('resize', drawHistory);
+    async function loadStats() {
+      try {
+        const data = await api('/api/stats');
+        const totalRam = Number(data.ramTotalGB);
+        const freeRam = Number(data.ramFreeGB);
+        const ramUsed = Number.isFinite(totalRam) && Number.isFinite(freeRam) ? Math.max(0, totalRam - freeRam) : 0;
+        const ramPct = totalRam > 0 ? Math.min(100, Math.round((ramUsed / totalRam) * 100)) : 0;
+        const cpuPct = Math.max(0, Math.min(100, Number(data.cpu) || 0));
+        document.getElementById('ringCpu').style.setProperty('--p', cpuPct);
+        document.getElementById('ringRam').style.setProperty('--p', ramPct);
+        document.getElementById('cpuValue').textContent = cpuPct + '%';
+        document.getElementById('ramValue').textContent = ramPct + '%';
+        document.getElementById('cpuLoad').textContent = cpuPct + '%';
+        document.getElementById('ramSummary').textContent = totalRam > 0 ? ramUsed.toFixed(1) + ' / ' + totalRam.toFixed(1) + ' GB' : 'Memory total unavailable';
+        document.getElementById('cpuName').textContent = data.cpuName || 'Processor';
+        document.getElementById('processorName').textContent = data.cpuName || 'Processor model not reported';
+        document.getElementById('cpuCores').textContent = Number(data.cpuCores) > 0 ? data.cpuCores : '—';
+        document.getElementById('cpuThreads').textContent = Number(data.cpuThreads) > 0 ? data.cpuThreads : '—';
+        document.getElementById('cpuMaxMHz').textContent = Number(data.cpuMaxMHz) > 0 ? (Number(data.cpuMaxMHz) / 1000).toFixed(2) + ' GHz' : '—';
+        document.getElementById('uptimeValue').textContent = data.uptimeHours >= 24 ? (data.uptimeHours / 24).toFixed(1) + ' days' : data.uptimeHours + ' h';
+        document.getElementById('uptimeMeta').textContent = data.os || 'Windows';
+        document.getElementById('procCount').textContent = data.processCount || 0;
+        document.getElementById('hostMeta').textContent = (data.host || 'Local machine') + ' · ' + (data.user || 'user');
+        document.getElementById('overviewHostBadge').textContent = (data.host || 'Local machine') + ' · connected';
+        window.cpuHistory = [...(window.cpuHistory || []), cpuPct];
+        window.ramHistory = [...(window.ramHistory || []), ramPct];
+        while (window.cpuHistory.length > 24) window.cpuHistory.shift();
+        while (window.ramHistory.length > 24) window.ramHistory.shift();
+        drawHistory();
+        document.getElementById('chartSummary').textContent = 'Latest sample: CPU ' + cpuPct + '%; memory ' + ramPct + '% (' + (totalRam > 0 ? ramUsed.toFixed(1) + ' of ' + totalRam.toFixed(1) + ' GB' : 'capacity unavailable') + '). Samples are temporary and collected while Overview is open.';
+        const diskList = document.getElementById('diskList');
+        diskList.innerHTML = (data.disks || []).map((disk) => {
+          const total = Number(disk.totalGB);
+          const free = Number(disk.freeGB);
+          if (!Number.isFinite(total) || total < 0 || !Number.isFinite(free)) return '';
+          const used = Math.max(0, Math.min(total, total - free));
+          const percent = total > 0 ? Math.round((used / total) * 100) : 0;
+          return `<div class="disk-row"><div class="row" style="justify-content:space-between;"><strong>${esc(disk.name)}</strong><span class="muted">${used.toFixed(1)} / ${total.toFixed(1)} GB · ${percent}% used</span></div><div class="progress disk-progress" role="img" aria-label="${esc(disk.name)} ${percent}% used"><span style="width:${percent}%"></span></div></div>`;
+        }).join('') || '<div class="muted">No fixed disks reported.</div>';
+      } catch (err) {
+        reportApiError('/api/stats', err.message);
+      }
+    }
     async function loadProjects() { try { const data = await api('/api/projects'); const grid = document.getElementById('projectsGrid'); grid.innerHTML = (data || []).slice(0, 12).map((project) => `<div class="project-card"><div class="row" style="justify-content:space-between; margin-bottom:8px;"><h4>${esc(project.name || 'Project')}</h4><span class="pill ${project.kind === 'git' ? 'ok' : ''}">${project.kind === 'git' ? 'Git' : 'Folder'}</span></div><p>${esc(project.path || 'Unknown path')}</p><div class="muted" style="font-size:12px;">${project.branch ? 'Branch: ' + esc(project.branch) : 'Workspace folder'}</div></div>`).join('') || '<div class="muted">No local projects discovered yet.</div>'; } catch (err) { document.getElementById('projectsGrid').innerHTML = '<div class="muted">Unable to load project list from the local bridge.</div>'; } }
-    async function loadModels() { const sel = document.getElementById('ollamaModel'); try { const data = await api('/api/ollama/tags'); const names = (data.models || []).map((m) => m.name); sel.innerHTML = names.map((name) => `<option value="${esc(name)}">${esc(name)}</option>`).join('') || '<option value="">No local models</option>'; if (!S.ollamaModel && names.length) S.ollamaModel = names[0]; if (S.ollamaModel) sel.value = S.ollamaModel; document.getElementById('ollamaBadge').className = 'badge ok'; document.getElementById('ollamaBadge').textContent = names.length ? (names.length + ' models') : 'Offline'; const localSummary = document.getElementById('localSummary'); localSummary.textContent = names.length ? 'Ollama available with ' + names.length + ' installed model(s).' : 'Ollama not reporting any installed models.'; document.getElementById('localModelList').innerHTML = names.slice(0, 6).map((name) => `<div class="row" style="justify-content:space-between;"><span>${esc(name)}</span><span class="pill ok">Ready</span></div>`).join('') || '<div class="muted">No models installed.</div>'; } catch (err) { sel.innerHTML = '<option value="">Ollama unavailable</option>'; document.getElementById('ollamaBadge').className = 'badge bad'; document.getElementById('ollamaBadge').textContent = 'Offline'; document.getElementById('localSummary').textContent = 'Ollama is not reachable from the local bridge.'; document.getElementById('localModelList').innerHTML = '<div class="muted">Install Ollama and pull a model to enable local inference.</div>'; } }
-    function populateToolList() { const items = [['Git','Not checked','warn'],['GitHub CLI','Not checked','warn'],['VS Code CLI','Not checked','warn'],['Ollama','See Local AI status','warn']]; document.getElementById('toolList').innerHTML = items.map(([name, status, level]) => `<li><span>${esc(name)}</span><span class="pill ${level}">${esc(status)}</span></li>`).join(''); }
-    function populateActionList() { const actions = [['Bridge status','Live check through the authenticated localhost API'],['Project discovery','Live folder and Git metadata from the bridge'],['Runtime inventory','Process and service lists; mutations require confirmation'],['Command execution','Disabled until named, validated tasks are available']]; document.getElementById('actionList').innerHTML = actions.map(([title, detail]) => `<li><span>${esc(title)}</span><span class="muted">${esc(detail)}</span></li>`).join(''); }
+    async function loadModels() {
+      const select = document.getElementById('ollamaModel');
+      const detailBadge = document.getElementById('ollamaBadge');
+      const overviewBadge = document.getElementById('overviewOllamaBadge');
+      try {
+        const data = await api('/api/ollama/tags');
+        const models = Array.isArray(data.models) ? data.models.filter((model) => model && typeof model.name === 'string') : [];
+        const names = models.map((model) => model.name);
+        select.innerHTML = names.map((name) => `<option value="${esc(name)}">${esc(name)}</option>`).join('') || '<option value="">No installed models</option>';
+        if (!names.includes(S.ollamaModel)) S.ollamaModel = names[0] || '';
+        if (S.ollamaModel) select.value = S.ollamaModel;
+        const available = names.length > 0;
+        detailBadge.className = available ? 'badge ok' : 'badge warn';
+        detailBadge.textContent = available ? names.length + ' installed' : 'Connected · no models';
+        overviewBadge.className = detailBadge.className;
+        overviewBadge.textContent = available ? 'Ready' : 'No models';
+        const summary = available
+          ? 'Ollama is responding. ' + names.length + ' installed model(s) are available.'
+          : 'Ollama is responding, but it reports no installed models.';
+        document.getElementById('localSummary').textContent = summary;
+        document.getElementById('overviewLocalSummary').textContent = summary;
+        const modelRows = models.slice(0, 6).map((model) => {
+          const size = Number(model.size);
+          const sizeLabel = Number.isFinite(size) && size > 0 ? (size / (1024 ** 3)).toFixed(1) + ' GB' : 'Installed';
+          return `<div class="row" style="justify-content:space-between;"><span>${esc(model.name)}</span><span class="pill ok">${sizeLabel}</span></div>`;
+        }).join('') || '<div class="muted">No installed models.</div>';
+        document.getElementById('localModelList').innerHTML = modelRows;
+        document.getElementById('overviewLocalModelList').innerHTML = models.slice(0, 3).map((model) => `<div class="row" style="justify-content:space-between;"><span>${esc(model.name)}</span><span class="pill ok">Installed</span></div>`).join('') || '';
+      } catch (err) {
+        select.innerHTML = '<option value="">Ollama unavailable</option>';
+        detailBadge.className = 'badge bad';
+        detailBadge.textContent = 'Offline';
+        overviewBadge.className = 'badge bad';
+        overviewBadge.textContent = 'Offline';
+        const message = 'Could not reach the configured local Ollama service: ' + err.message;
+        document.getElementById('localSummary').textContent = message;
+        document.getElementById('overviewLocalSummary').textContent = message;
+        document.getElementById('localModelList').innerHTML = '<div class="muted">Check that Ollama is running and review the bridge endpoint configuration.</div>';
+        document.getElementById('overviewLocalModelList').innerHTML = '';
+      }
+    }
     function renderSecurity() { const list = [['Loopback binding','Bridge listener is configured for 127.0.0.1.','ok'],['Bearer authentication','API routes require the bridge token.','ok'],['Shell execution','Unrestricted /api/run is disabled.','ok'],['MCP lifecycle','Startup is disabled pending a reviewed server registry.','warn'],['Mutation policy','Some actions still need a stronger reviewed target policy.','warn'],['Audit history','Persistent audit records are not implemented.','warn']]; document.getElementById('securityList').innerHTML = list.map(([label, text, state]) => `<li><span>${esc(label)}</span><span class="pill ${state}">${esc(text)}</span></li>`).join(''); const audit = [['Local binding','Configured in bridge source'],['Host and origin checks','Enforced on requests and preflight'],['Shell execution','Disabled by default'],['Persistent audit','Not implemented']]; document.getElementById('auditList').innerHTML = audit.map(([title, detail]) => `<li><span>${esc(title)}</span><span class="muted">${esc(detail)}</span></li>`).join(''); }
     function populateActionCards() { const cards = [{ name: 'Lock Screen', cmd: 'lock', risk: 'Low', action: 'standard', approval: false }, { name: 'Flush DNS', cmd: 'flushdns', risk: 'Low', action: 'standard', approval: false }, { name: 'Open File Explorer', cmd: 'explorer', risk: 'Low', action: 'standard', approval: false }, { name: 'Restart Computer', cmd: 'restart', risk: 'High', action: 'admin', approval: true }]; document.getElementById('actionCards').innerHTML = cards.map((item) => `<div class="tool-card"><h4>${esc(item.name)}</h4><p>Permission: ${esc(item.action)} · Risk: ${esc(item.risk)}${item.approval ? ' · Confirmation required' : ''}</p><div class="actions"><button class="btn sm primary" data-action="${esc(item.cmd)}" data-approval="${item.approval}">Run</button></div></div>`).join(''); }
     function renderProcesses() { const filter = $('#procFilter').value.toLowerCase(); const body = document.getElementById('procBody'); body.innerHTML = ''; const rows = window.procRows || []; const visible = rows.filter((p) => p.name.toLowerCase().includes(filter)); if (!visible.length) { body.innerHTML = '<tr><td colspan="5" class="muted">No processes match your filter.</td></tr>'; return; } body.innerHTML = visible.map((p) => `<tr><td>${esc(p.name)}</td><td>${esc(p.id)}</td><td>${esc(p.cpu)}</td><td>${esc(p.memMB)}</td><td><button class="btn sm danger" data-kill="${p.id}">Stop</button></td></tr>`).join(''); }
     async function loadProcesses() { try { const rows = await api('/api/processes'); window.procRows = rows; renderProcesses(); } catch (err) { document.getElementById('procBody').innerHTML = `<tr><td colspan="5" class="muted">Unable to load processes: ${esc(err.message)}</td></tr>`; } }
     function renderServices() { const filter = $('#svcFilter').value.toLowerCase(); const statusFilter = $('#svcStatus').value; const body = document.getElementById('svcBody'); const rows = window.svcRows || []; const visible = rows.filter((svc) => { const matchesFilter = (svc.name + svc.display).toLowerCase().includes(filter); const matchesStatus = !statusFilter || svc.status === statusFilter; return matchesFilter && matchesStatus; }); body.innerHTML = visible.map((svc) => `<tr><td>${esc(svc.name)}</td><td>${esc(svc.display)}</td><td><span class="pill ${svc.status === 'Running' ? 'ok' : 'bad'}">${esc(svc.status)}</span></td><td>${esc(svc.start)}</td><td><button class="btn sm" data-svc-action="start" data-svc-name="${esc(svc.name)}">Start</button><button class="btn sm" data-svc-action="restart" data-svc-name="${esc(svc.name)}">Restart</button><button class="btn sm danger" data-svc-action="stop" data-svc-name="${esc(svc.name)}">Stop</button></td></tr>`).join('') || '<tr><td colspan="5" class="muted">No services match.</td></tr>'; }
     async function loadServices() { try { const rows = await api('/api/services'); window.svcRows = rows; renderServices(); } catch (err) { document.getElementById('svcBody').innerHTML = `<tr><td colspan="5" class="muted">Unable to load services: ${esc(err.message)}</td></tr>`; } }
-    function setActivePage(name) { $$('.page').forEach((page) => page.classList.toggle('active', page.id === 'page-' + name)); $$('.nav button').forEach((btn) => btn.classList.toggle('active', btn.dataset.page === name)); const titles = { overview:['Overview','Local workstation status and AI controls'], projects:['Projects','Inspect local repositories and workspaces'], workbench:['Workbench','Task planning and safe execution context'], processes:['Processes','Process and memory control'], services:['Services','Service lifecycle and health'], terminal:['Terminal','Run commands with explicit awareness'], local:['Local AI','Chat with installed Ollama models'], cloud:['Cloud AI','Use configured cloud providers'], mcp:['MCP','Manage local Model Context Protocol servers'], skills:['Skills','Quick reusable task commands'], security:['Security','Audit posture and access controls'], settings:['Settings','Connect the dashboard to the bridge'] }; const [title, subtitle] = titles[name] || ['Overview','Local workstation status and AI controls']; document.getElementById('pageTitle').textContent = title; document.getElementById('pageSubtitle').textContent = subtitle; if (name === 'projects') loadProjects(); if (name === 'processes') loadProcesses(); if (name === 'services') loadServices(); if (name === 'local') loadModels(); }
+    const pageSuggestions = {
+      overview: ['Metrics are sampled every five seconds only while this page is open; history is temporary and not retained after reload.', 'processes', 'View processes'],
+      projects: ['Project discovery is limited to this workspace and nearby Git repositories. Review a path before opening or sharing it.', 'workbench', 'Open Workbench'],
+      workbench: ['Saved instructions guide prompts only. They do not approve system changes or enable command execution.', 'security', 'Review security'],
+      processes: ['Stopping a process can lose unsaved work. Check its name and PID before approving the action.', 'services', 'View services'],
+      services: ['Service changes affect Windows. Confirm the service identity and impact before approving a change.', 'security', 'Review safeguards'],
+      terminal: ['Arbitrary shell execution is intentionally disabled. Use reviewed, named tasks only when they become available.', 'security', 'Review security'],
+      local: ['Local chat uses your configured Ollama service. Confirm the selected model and keep large prompts appropriate for your machine.', 'settings', 'Open settings'],
+      cloud: ['Cloud prompts are sent to the selected provider. Do not include secrets or sensitive local data; API keys remain session-only.', 'settings', 'Open settings'],
+      mcp: ['MCP startup remains disabled until a reviewed registry and fixed executable/argument policies are implemented.', 'security', 'Review safeguards'],
+      skills: ['Listed skills are informational examples, not executable tasks. Inspect their source and permissions before enabling future downloads.', 'security', 'Review safeguards'],
+      security: ['The bridge is designed for IPv4 loopback only. Do not expose its port to your LAN or the public internet.', 'settings', 'Connection settings'],
+      settings: ['Only appearance and non-secret preferences are saved. Session tokens and provider API keys are excluded from browser storage.', 'security', 'Review security']
+    };
+    function renderSuggestion(name) { const portal = document.getElementById('suggestionPortal'); const suggestion = pageSuggestions[name]; portal.hidden = !S.showSuggestions || !suggestion; if (!suggestion) return; document.getElementById('suggestionText').textContent = suggestion[0]; const link = document.getElementById('suggestionLink'); link.textContent = suggestion[2]; link.onclick = () => setActivePage(suggestion[1]); }
+    function openSuggestions() { if (!S.showSuggestions) { S.showSuggestions = true; document.getElementById('suggestionsToggle').checked = true; save(); } const activePage = document.querySelector('.page.active')?.id.replace('page-', '') || 'overview'; renderSuggestion(activePage); document.getElementById('suggestionPortal').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'nearest' }); }
+    function setActivePage(name) { $$('.page').forEach((page) => page.classList.toggle('active', page.id === 'page-' + name)); $$('.nav button').forEach((btn) => btn.classList.toggle('active', btn.dataset.page === name)); const titles = { overview:['Overview','Local workstation status and AI controls'], projects:['Projects','Inspect local repositories and workspaces'], workbench:['Workbench','Task planning and safe execution context'], processes:['Processes','Process and memory control'], services:['Services','Service lifecycle and health'], terminal:['Terminal','Run commands with explicit awareness'], local:['Local AI','Check the local Ollama service and installed models'], cloud:['Cloud AI','Use configured cloud providers'], mcp:['MCP','Manage local Model Context Protocol servers'], skills:['Skills','Read-only guidance and safe section shortcuts'], security:['Security','Audit posture and access controls'], settings:['Settings','Connect the dashboard to the bridge'] }; const [title, subtitle] = titles[name] || ['Overview','Local workstation status and AI controls']; document.getElementById('pageTitle').textContent = title; document.getElementById('pageSubtitle').textContent = subtitle; renderSuggestion(name); if (name === 'projects') loadProjects(); if (name === 'processes') loadProcesses(); if (name === 'services') loadServices(); if (name === 'local') loadModels(); }
     document.querySelectorAll('.nav button').forEach((btn) => { btn.addEventListener('click', () => setActivePage(btn.dataset.page)); });
-    document.getElementById('themeToggle').addEventListener('click', () => { S.theme = S.theme === 'dark' ? 'light' : 'dark'; save(); setTheme(); });
+    document.querySelectorAll('[data-open-page]').forEach((btn) => { btn.addEventListener('click', () => setActivePage(btn.dataset.openPage)); });
+    document.getElementById('suggestionsOpen').addEventListener('click', openSuggestions);
+    document.getElementById('overviewSuggestions').addEventListener('click', openSuggestions);
+    setActivePage('overview');
+    document.getElementById('themeToggle').addEventListener('click', () => { S.theme = S.theme === 'dark' ? 'light' : 'dark'; save(); setTheme(); drawHistory(); });
+    document.getElementById('accentSelect').value = S.accent;
+    document.getElementById('suggestionsToggle').checked = S.showSuggestions;
+    document.getElementById('accentSelect').addEventListener('change', (event) => { S.accent = event.target.value; save(); setTheme(); drawHistory(); });
+    document.getElementById('suggestionsToggle').addEventListener('change', (event) => { S.showSuggestions = event.target.checked; save(); renderSuggestion(document.querySelector('.page.active').id.replace('page-', '')); });
     document.getElementById('refreshProjectsBtn').addEventListener('click', loadProjects); document.getElementById('refreshModelsBtn').addEventListener('click', loadModels); document.getElementById('refreshProcBtn').addEventListener('click', loadProcesses); document.getElementById('refreshSvcBtn').addEventListener('click', loadServices);
     document.getElementById('procFilter').addEventListener('input', renderProcesses); document.getElementById('svcFilter').addEventListener('input', renderServices); document.getElementById('svcStatus').addEventListener('change', renderServices);
     document.getElementById('procBody').addEventListener('click', async (event) => { const button = event.target.closest('[data-kill]'); if (!button) return; const pid = Number(button.dataset.kill); if (!pid || !confirm(`Stop process with PID ${pid}? This may lose unsaved work.`)) return; try { await api('/api/process/stop', { id: pid, approved: true }); toast('Process stopped', 'ok'); loadProcesses(); } catch (err) { toast(err.message, 'error'); } });
@@ -238,12 +569,20 @@
     function renderChat(containerId, onSend) { const container = document.getElementById(containerId); container.innerHTML = `<div class="messages" id="${containerId}-messages"></div><div class="composer"><textarea id="${containerId}-input" rows="2" placeholder="Type a message…"></textarea><button class="btn primary" id="${containerId}-send">Send</button></div>`; const messagesEl = document.getElementById(containerId + '-messages'); const inputEl = document.getElementById(containerId + '-input'); const sendBtn = document.getElementById(containerId + '-send'); let history = []; const addMessage = (role, text) => { const node = document.createElement('div'); node.className = 'message ' + (role === 'user' ? 'user' : 'bot'); node.textContent = text; messagesEl.appendChild(node); messagesEl.scrollTop = messagesEl.scrollHeight; }; const send = async () => { const text = inputEl.value.trim(); if (!text) return; inputEl.value = ''; addMessage('user', text); history.push({ role: 'user', content: text }); const assistantBubble = document.createElement('div'); assistantBubble.className = 'message bot'; assistantBubble.textContent = '…'; messagesEl.appendChild(assistantBubble); try { const reply = await onSend(history); assistantBubble.textContent = reply || '(empty reply)'; history.push({ role: 'assistant', content: reply || '' }); } catch (err) { assistantBubble.textContent = 'Error: ' + err.message; assistantBubble.style.color = '#ffb5c0'; } }; sendBtn.addEventListener('click', send); inputEl.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); send(); } }); }
     renderChat('localChat', async (history) => { const model = document.getElementById('ollamaModel').value; if (!model) throw new Error('No Ollama model selected. Pull one with "ollama pull llama3.2".'); const data = await api('/api/ollama/chat', { model, messages: history }, 'POST', 600000); return data.message?.content || '(empty reply)'; });
     renderChat('cloudChat', async (history) => { const provider = S.cloudProvider || 'anthropic'; const apiKey = document.getElementById('cloudKey').value.trim(); if (!apiKey) throw new Error('Paste a provider API key first.'); const model = document.getElementById('cloudModel').value.trim() || 'claude-sonnet-4'; if (provider === 'anthropic') { const response = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, body: JSON.stringify({ model, max_tokens: 1024, messages: history }) }); const json = await response.json(); if (!response.ok) throw new Error(json.error?.message || 'Anthropic request failed'); return json.content?.map((part) => part.text || '').join('') || '(empty reply)'; } if (provider === 'openai') { const response = await fetch('https://api.openai.com/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, messages: history }) }); const json = await response.json(); if (!response.ok) throw new Error(json.error?.message || 'OpenAI request failed'); return json.choices?.[0]?.message?.content || '(empty reply)'; } const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: history.map((msg) => ({ role: msg.role === 'assistant' ? 'model' : 'user', parts: [{ text: msg.content }] })) }) }); const json = await response.json(); if (!response.ok) throw new Error(json.error?.message || 'Gemini request failed'); return json.candidates?.[0]?.content?.parts?.map((part) => part.text).join('') || '(empty reply)'; });
-    function renderSkills() { const skills = [['Local network addresses','Example read-only query; execution is not enabled.'],['Disk usage summary','Example read-only query; execution is not enabled.'],['Check memory usage','Example read-only query; execution is not enabled.']]; document.getElementById('skillList').innerHTML = skills.map(([name, detail]) => `<div class="tool-card"><h4>${esc(name)}</h4><p>${esc(detail)}</p><span class="pill warn">Planned: reviewed named tasks</span></div>`).join(''); }
+    function renderSkills() {
+      const skills = [
+        ['System health', 'CPU and memory review', 'Compare live system load with the recent chart and understand its short, in-memory sampling window.', 'overview', 'Open overview'],
+        ['Process review', 'Read-only inventory', 'Filter the current process inventory. Stopping processes remains a separate, approval-gated action.', 'processes', 'Review processes'],
+        ['Storage planning', 'Capacity check', 'Inspect free and used space on detected fixed disks before planning local workloads.', 'overview', 'View capacity'],
+        ['Local inference', 'Model readiness', 'Check local Ollama availability and installed models before starting a chat.', 'local', 'Check Local AI']
+      ];
+      document.getElementById('skillList').innerHTML = skills.map(([category, name, detail, page, action]) => `<article class="tool-card skill-card"><span class="skill-category">${esc(category)}</span><h4>${esc(name)}</h4><p>${esc(detail)}</p><span class="pill warn">Guidance only · not executable</span><button class="btn sm" style="margin-top:12px;" type="button" data-open-page="${esc(page)}">${esc(action)}</button></article>`).join('');
+    }
     document.getElementById('actionCards').addEventListener('click', async (event) => { const button = event.target.closest('[data-action]'); if (!button) return; const action = button.dataset.action; const requiresApproval = button.dataset.approval === 'true'; if (requiresApproval && !confirm(`Run ${action}? This is a high-impact action and requires administrator permission.`)) return; try { const data = await api('/api/action', { name: action, approved: requiresApproval }); toast(data.output || 'Action completed', 'ok'); } catch (err) { toast(err.message, 'error'); } });
     document.getElementById('saveBridgeBtn').addEventListener('click', async () => { S.url = document.getElementById('bridgeUrl').value.trim() || 'http://127.0.0.1:8787'; S.token = document.getElementById('bridgeToken').value.trim(); save(); const ok = await pingBridge(); if (ok) { toast('Connected to the bridge', 'ok'); loadStats(); loadProjects(); loadModels(); } else { toast('Connection failed. See the message above for details.', 'error'); } });
     document.getElementById('clearDataBtn').addEventListener('click', () => { if (!confirm('Clear saved browser state?')) return; try { localStorage.removeItem('helpyard-state'); location.reload(); } catch (err) { showNotice('Browser storage could not be cleared: ' + err.message); } });
     document.getElementById('mcpList').innerHTML = '<div class="feature-status">MCP server lifecycle is not connected. Start operations remain disabled until a reviewed server registry, fixed executable paths, and argument policies are implemented.</div>';
-    renderSkills(); renderSecurity(); populateToolList(); populateActionList(); populateActionCards(); document.getElementById('bridgeUrl').value = S.url; document.getElementById('bridgeToken').value = S.token; document.getElementById('cloudProvider').value = S.cloudProvider || 'anthropic'; document.getElementById('cloudModel').value = S.cloudModel || 'claude-sonnet-4'; document.getElementById('cloudKey').value = ''; document.getElementById('wbSystem').value = S.systemPrompt || defaultState.systemPrompt; document.getElementById('cloudProvider').addEventListener('change', () => { S.cloudProvider = document.getElementById('cloudProvider').value; save(); }); document.getElementById('cloudModel').addEventListener('change', () => { S.cloudModel = document.getElementById('cloudModel').value; save(); }); document.getElementById('cloudKey').addEventListener('change', () => { S.cloudKey = document.getElementById('cloudKey').value; save(); }); document.getElementById('wbSave').addEventListener('click', () => { S.systemPrompt = document.getElementById('wbSystem').value; save(); toast('Workbench settings saved', 'ok'); }); document.getElementById('wbReset').addEventListener('click', () => { document.getElementById('wbSystem').value = defaultState.systemPrompt; S.systemPrompt = defaultState.systemPrompt; save(); toast('Workbench reset', 'ok'); }); if (storageWarning) { if (storageWarning.startsWith('A previously saved cloud API key')) save(); showNotice(storageWarning); } async function initializeBridge() { const bootstrapped = await bootstrapBridge(); if (!bootstrapped) await detectBridgeUrl(); const connected = await pingBridge(); if (connected) { loadStats(); loadProjects(); loadModels(); } } initializeBridge(); setInterval(() => { if (document.getElementById('page-overview').classList.contains('active')) loadStats(); }, 5000); setInterval(() => pingBridge(), 15000);
+    renderSkills(); renderSecurity(); populateActionCards(); document.getElementById('bridgeUrl').value = S.url; document.getElementById('bridgeToken').value = S.token; document.getElementById('cloudProvider').value = S.cloudProvider || 'anthropic'; document.getElementById('cloudModel').value = S.cloudModel || 'claude-sonnet-4'; document.getElementById('cloudKey').value = ''; document.getElementById('wbSystem').value = S.systemPrompt || defaultState.systemPrompt; document.getElementById('cloudProvider').addEventListener('change', () => { S.cloudProvider = document.getElementById('cloudProvider').value; save(); }); document.getElementById('cloudModel').addEventListener('change', () => { S.cloudModel = document.getElementById('cloudModel').value; save(); }); document.getElementById('cloudKey').addEventListener('change', () => { S.cloudKey = document.getElementById('cloudKey').value; save(); }); document.getElementById('wbSave').addEventListener('click', () => { S.systemPrompt = document.getElementById('wbSystem').value; save(); toast('Workbench settings saved', 'ok'); }); document.getElementById('wbReset').addEventListener('click', () => { document.getElementById('wbSystem').value = defaultState.systemPrompt; S.systemPrompt = defaultState.systemPrompt; save(); toast('Workbench reset', 'ok'); }); if (storageWarning) { if (storageWarning.startsWith('A previously saved cloud API key')) save(); showNotice(storageWarning); } async function initializeBridge() { const bootstrapped = await bootstrapBridge(); if (!bootstrapped) await detectBridgeUrl(); const connected = await pingBridge(); if (connected) { loadStats(); loadProjects(); loadModels(); } } initializeBridge(); setInterval(() => { if (document.getElementById('page-overview').classList.contains('active')) loadStats(); }, 5000); setInterval(() => pingBridge(), 15000);
     if (storageWarning) {
       if (storageWarning.includes('discarded')) save();
       const storageNotice = document.getElementById('storageNotice');
