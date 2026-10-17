@@ -71,29 +71,29 @@
       <p class="cover-sub">Project overview, system architecture, interface guide, implemented capabilities, verification evidence, risk assessment, and a staged path to a safe release.</p>
     </div>
     <div>
-      <p class="cover-meta"><strong>Prepared:</strong> 17 October 2026<br><strong>Reviewed baseline:</strong> local HTML dashboard + Windows PowerShell bridge<br><strong>Report status:</strong> verified prototype assessment; public release not yet approved</p>
+      <p class="cover-meta"><strong>Updated:</strong> 17 October 2026<br><strong>Current runtime:</strong> HTML/CSS/JavaScript dashboard + Python standard-library bridge<br><strong>Report status:</strong> local prototype; public release not approved</p>
       <p class="cover-foot">Prepared from the project files and local checks available in this workspace. Capabilities are labelled as implemented, partially implemented, or planned; untested environments are not presented as verified.</p>
     </div>
   </section>
 
   <h2>Executive summary</h2>
-  <p class="lead">Helpyard is a local workstation dashboard built as a single HTML page paired with a Windows PowerShell HTTP bridge. Its purpose is to bring system monitoring, project discovery, process/service controls, a command runner, local Ollama chat, and configuration into one browser interface.</p>
+  <p class="lead">Helpyard is a local workstation dashboard built as a single HTML/CSS/JavaScript page paired with a Python standard-library HTTP bridge. The bridge serves the dashboard, connects browser authentication automatically for one launch, and delegates Windows-specific operations to fixed PowerShell scripts.</p>
   <div class="grid3">
     <div class="card tint"><div class="metric">1</div><div class="metric-label">Single-page frontend, no frontend build step</div></div>
     <div class="card tint"><div class="metric">12</div><div class="metric-label">Navigation sections currently shown</div></div>
     <div class="card tint"><div class="metric">20+</div><div class="metric-label">Local HTTP route patterns in the bridge</div></div>
   </div>
-  <div class="callout good"><strong>What is working in the verified environment:</strong> bridge authentication and system data routes; dashboard navigation and operational panels; project, process, and service lists; a read-only PowerShell command; Ollama model discovery; and an end-to-end local chat response. The previously discovered parser and Ollama response-shape defects were fixed and rechecked.</div>
-  <div class="callout warning"><strong>Release decision:</strong> suitable for controlled local evaluation, not public internet exposure. The bridge can execute commands and control Windows. Firefox was unavailable in the environment; full browser coverage, complete threat-model hardening, and a mock-backed public demo remain outstanding.</div>
+  <div class="callout good"><strong>What is verified in the current implementation:</strong> the Python bridge compiles and its six local HTTP tests pass for authentication, single-use bootstrap, route behavior, approval gates, input limits, and ping responsiveness during slow Ollama chat. The dashboard's 12 navigation targets, 10 API route references, 78 DOM IDs, and JavaScript syntax pass static checks. A live browser check also verified all 12 sections, automatic connection, Windows metrics/processes/services, project discovery, 15 Ollama models, and a <code>READY</code> local chat response.</div>
+  <div class="callout warning"><strong>Release decision:</strong> suitable for controlled local evaluation, not public internet exposure. The bridge can perform named Windows operations, but arbitrary command execution and MCP startup are disabled. Browser matrix testing, mutation testing, and full security review remain outstanding.</div>
   <h3>At a glance</h3>
   <table>
     <thead><tr><th>Dimension</th><th>Current assessment</th><th>Evidence / interpretation</th></tr></thead>
     <tbody>
-      <tr><td>Architecture</td><td><span class="tag green">Implemented</span></td><td>One HTML/CSS/JS UI and a localhost-bound PowerShell bridge; Ollama is optional.</td></tr>
-      <tr><td>Core local use</td><td><span class="tag green">Verified in one environment</span></td><td>Windows 11, Windows PowerShell 5.1 and integrated Chromium-based VS Code browser.</td></tr>
-      <tr><td>AI</td><td><span class="tag green">Local chat verified</span></td><td>Ollama model list and non-streaming chat response tested end to end.</td></tr>
+      <tr><td>Architecture</td><td><span class="tag green">Implemented</span></td><td>One HTML/CSS/JS UI and a localhost-bound Python bridge; PowerShell performs fixed Windows operations; Ollama is optional.</td></tr>
+      <tr><td>Core local use</td><td><span class="tag green">Verified on one workstation</span></td><td>Python API tests, dashboard checks, one-click launcher startup, and live browser data routes passed.</td></tr>
+      <tr><td>AI</td><td><span class="tag green">Live local chat verified</span></td><td>15 installed Ollama models were listed and a short chat returned <code>READY</code>.</td></tr>
       <tr><td>Project intelligence</td><td><span class="tag amber">Basic discovery</span></td><td>Lists candidate folders and immediate Git repositories; not a repository analyzer/indexer.</td></tr>
-      <tr><td>Security posture</td><td><span class="tag amber">Local boundary present; hardening needed</span></td><td>Loopback binding, token and origin checks exist; arbitrary PowerShell execution is high impact.</td></tr>
+      <tr><td>Security posture</td><td><span class="tag amber">Local boundary present; hardening needed</span></td><td>Loopback binding, one-time bootstrap, token and origin checks exist; arbitrary PowerShell execution is disabled.</td></tr>
       <tr><td>Public readiness</td><td><span class="tag red">Not ready</span></td><td>Do not publish a build connected to the workstation bridge.</td></tr>
     </tbody>
   </table>
@@ -116,13 +116,13 @@
   <section class="chapter">
     <h2>1. Project purpose, scope, and user value</h2>
     <h3>Purpose</h3>
-    <p>Helpyard consolidates common workstation and developer operations in a navigable browser dashboard. The interface is intentionally a regular HTML document; system-level operations are delegated to a separate local PowerShell process because a browser page cannot safely or directly control Windows.</p>
+    <p>Helpyard consolidates common workstation and developer operations in a navigable browser dashboard. The interface is intentionally a regular HTML document; a local Python bridge serves the page and API, and delegates fixed system operations to Windows PowerShell subprocesses.</p>
     <h3>Intended audience and use cases</h3>
     <ul>
       <li>A Windows developer who wants a quick view of CPU, memory, uptime, disks, processes, and services.</li>
       <li>A user who wants to browse a lightweight list of likely project folders and Git repositories.</li>
       <li>A local-AI user who wants to select an installed Ollama model and chat without sending that chat to a cloud provider.</li>
-      <li>An operator who needs a browser UI for a PowerShell session, a small set of Windows actions, and service controls.</li>
+      <li>An operator who needs a browser UI for a small, reviewed set of Windows actions and service controls.</li>
     </ul>
     <h3>Design principles visible in the implementation</h3>
     <div class="grid2">
@@ -136,7 +136,7 @@
 
   <section class="chapter">
     <h2>2. Architecture and request/data flow</h2>
-    <p>The design has three primary runtime components. The browser owns presentation and user interaction; the PowerShell bridge owns privileged/local operations; optional Ollama handles local inference. An optional cloud chat path calls provider APIs directly from the browser.</p>
+    <p>The design has three primary runtime components. The browser owns presentation and user interaction; the Python bridge serves the UI and API, enforces local authentication and approval checks, and starts fixed Windows PowerShell scripts; optional Ollama handles local inference. An optional cloud chat path calls provider APIs directly from the browser.</p>
     <div class="diagram">
       <svg viewBox="0 0 900 390" role="img" aria-label="Helpyard architecture diagram">
         <defs><linearGradient id="hdr" x1="0" x2="1"><stop stop-color="#0a819f"/><stop offset="1" stop-color="#7165cf"/></linearGradient><marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#1b8eab"/></marker></defs>
@@ -152,11 +152,11 @@
         <text x="55" y="274" fill="#76ddef" font-size="11" font-family="Segoe UI">User-reviewed UI actions</text>
         <rect x="344" y="76" width="250" height="235" rx="13" fill="#19384c" stroke="#6d83e6" stroke-width="2"/>
         <rect x="344" y="76" width="250" height="42" rx="13" fill="url(#hdr)"/>
-        <text x="366" y="103" fill="white" font-size="16" font-family="Segoe UI" font-weight="700">PowerShell bridge</text>
-        <text x="364" y="151" fill="#dbeaf3" font-size="13" font-family="Segoe UI">bridge.ps1 · HttpListener</text>
-        <text x="364" y="180" fill="#b9cede" font-size="12" font-family="Segoe UI">127.0.0.1 · random token</text>
-        <text x="364" y="204" fill="#b9cede" font-size="12" font-family="Segoe UI">Host / origin checks</text>
-        <text x="364" y="228" fill="#b9cede" font-size="12" font-family="Segoe UI">Windows / Git / commands</text>
+        <text x="366" y="103" fill="white" font-size="16" font-family="Segoe UI" font-weight="700">Python bridge</text>
+        <text x="364" y="151" fill="#dbeaf3" font-size="13" font-family="Segoe UI">bridge.py · ThreadingHTTPServer</text>
+        <text x="364" y="180" fill="#b9cede" font-size="12" font-family="Segoe UI">127.0.0.1 · one-time bootstrap</text>
+        <text x="364" y="204" fill="#b9cede" font-size="12" font-family="Segoe UI">Host / origin / token checks</text>
+        <text x="364" y="228" fill="#b9cede" font-size="12" font-family="Segoe UI">Fixed PowerShell / Git / Ollama</text>
         <text x="364" y="274" fill="#ffca77" font-size="11" font-family="Segoe UI">Trust boundary / privileged</text>
         <rect x="667" y="76" width="190" height="101" rx="13" fill="#203756" stroke="#8b7de3" stroke-width="2"/>
         <text x="690" y="109" fill="white" font-size="15" font-family="Segoe UI" font-weight="700">Windows APIs</text>
@@ -170,7 +170,7 @@
         <text x="278" y="180" fill="#d7eff8" font-size="10" font-family="Segoe UI">HTTP + token</text>
         <line x1="594" y1="149" x2="659" y2="130" stroke="#56d2e9" stroke-width="4" marker-end="url(#arr)"/>
         <line x1="594" y1="245" x2="659" y2="258" stroke="#56d2e9" stroke-width="4" marker-end="url(#arr)"/>
-        <text x="298" y="348" fill="#c6d5e2" font-size="12" font-family="Segoe UI">Separate static-file host is optional for reliable browser origin / fetch behavior</text>
+        <text x="298" y="348" fill="#c6d5e2" font-size="12" font-family="Segoe UI">The bridge serves the dashboard and API from one loopback origin</text>
       </svg>
       <p class="caption">Figure 1. Logical architecture. The browser is not a security boundary for commands; authorization and permissions must be enforced by the bridge.</p>
     </div>
@@ -187,9 +187,9 @@
       <thead><tr><th>Component</th><th>Owns</th><th>Does not provide</th></tr></thead>
       <tbody>
         <tr><td>Dashboard HTML</td><td>Layout, navigation, rendering, browser state, direct cloud chat requests, HTTP client.</td><td>Unrestricted filesystem or OS capability by itself; durable secure credential storage.</td></tr>
-        <tr><td>PowerShell bridge</td><td>Local APIs, Windows host metrics, action/service/process operations, arbitrary PowerShell route, Ollama proxy, Claude Desktop config access.</td><td>Remote-safe multi-user authorization, sandboxing for arbitrary commands, production audit management.</td></tr>
+        <tr><td>Python bridge</td><td>Dashboard/API serving, loopback authentication, Windows host metrics, reviewed action/service/process operations, Ollama proxy, Claude Desktop config access.</td><td>Remote-safe multi-user authorization, arbitrary command execution (disabled), persistent audit management.</td></tr>
         <tr><td>Ollama</td><td>Installed local model listing and inference on the local machine.</td><td>Guaranteed model availability, latency, or quality; model setup is external.</td></tr>
-        <tr><td>Static file server</td><td>Serves the HTML document over loopback when the user chooses.</td><td>API backend or authorization; it should remain bound to loopback for local use.</td></tr>
+        <tr><td>PowerShell subprocess</td><td>Runs fixed scripts for Windows CIM, services, processes, and named actions.</td><td>Browser-supplied arbitrary scripts are not passed to PowerShell.</td></tr>
       </tbody>
     </table>
   </section>
@@ -276,16 +276,16 @@
     <table>
       <thead><tr><th>Capability</th><th>Status</th><th>What it currently does</th><th>Important boundary</th></tr></thead>
       <tbody>
-        <tr><td>System overview</td><td><span class="tag green">Live</span></td><td>Reads OS/CPU/RAM/uptime/disks/process count, renders rings and CPU/RAM history.</td><td>Polls on interval; errors in the stats loader are silently caught in current frontend.</td></tr>
-        <tr><td>Project discovery</td><td><span class="tag amber">Partial</span></td><td>Scans a fixed set of roots and immediate child Git repositories.</td><td>Not a user-granted workspace picker, deep crawler, dependency graph, or source index. Broad discovery roots should be reviewed for privacy.</td></tr>
+        <tr><td>System overview</td><td><span class="tag green">Live / verified</span></td><td>Reads OS/CPU/RAM/uptime/disks/process count, renders rings and CPU/RAM history; failures are surfaced in the page notice.</td><td>Verified on one Windows workstation.</td></tr>
+        <tr><td>Project discovery</td><td><span class="tag amber">Partial</span></td><td>Lists the project folder and immediate child Git repositories.</td><td>Not a user-granted workspace picker, deep crawler, dependency graph, or source index.</td></tr>
         <tr><td>Workbench</td><td><span class="tag amber">Partial</span></td><td>Stores a context label and system prompt in browser state; renders predefined action cards.</td><td>Does not generate/track an implementation plan or gate every arbitrary command by the prompt.</td></tr>
-        <tr><td>Process manager</td><td><span class="tag green">Live</span></td><td>Fetches 60 processes sorted by working set; filters list; asks before stop request.</td><td>Stop endpoint accepts a PID. Bridge-side target policy is minimal; operation affects the whole user machine.</td></tr>
-        <tr><td>Service manager</td><td><span class="tag green">Live</span></td><td>Lists Windows services and allows start/restart/stop from UI.</td><td>Service mutation is consequential and permissions vary. Server route does not currently enforce per-service approval policy.</td></tr>
-        <tr><td>Terminal</td><td><span class="tag amber">High-impact live capability</span></td><td>Runs a supplied PowerShell script block and returns formatted output.</td><td>Authenticated user can submit arbitrary commands; this is not a sandbox and no UI confirmation provides containment.</td></tr>
-        <tr><td>Local AI</td><td><span class="tag green">Live</span></td><td>Lists installed Ollama models and sends conversation turns through the bridge.</td><td>Current implementation is request/response, not streaming; requires local Ollama/model.</td></tr>
-        <tr><td>Cloud AI</td><td><span class="tag amber">Partial</span></td><td>Browser directly calls Anthropic, OpenAI, or Gemini APIs.</td><td>Key is saved in localStorage by current state handler. Browser origin/CORS/provider policy may limit use. Use only if intentional; avoid shared browser profiles.</td></tr>
-        <tr><td>MCP</td><td><span class="tag amber">UI only / partial backend</span></td><td>Dashboard displays sample service descriptions; bridge has MCP process start/status/stop routes.</td><td>No visible configuration form wires the cards to the bridge lifecycle API in this UI.</td></tr>
-        <tr><td>Skills</td><td><span class="tag green">Live predefined commands</span></td><td>Three hard-coded snippets call the terminal route and show output.</td><td>These execute commands, not isolated skills; output displays in the terminal panel.</td></tr>
+        <tr><td>Process manager</td><td><span class="tag green">Live / verified</span></td><td>Fetches up to 60 processes sorted by working set; filters list; asks for explicit approval before stopping.</td><td>Read/list/filter verified; process termination was not exercised.</td></tr>
+        <tr><td>Service manager</td><td><span class="tag green">Live / verified</span></td><td>Lists Windows services and supports explicitly approved start/restart/stop requests.</td><td>Service listing verified; mutations were not exercised.</td></tr>
+        <tr><td>Terminal</td><td><span class="tag green">Disabled by policy</span></td><td>UI explains that arbitrary command execution is unavailable; the bridge returns HTTP 403 for <code>/api/run</code>.</td><td>Named, reviewed terminal tasks are not implemented.</td></tr>
+        <tr><td>Local AI</td><td><span class="tag green">Live / verified</span></td><td>Lists installed Ollama models and sends non-streaming conversation turns through the bridge.</td><td>One short chat and model listing verified; requires a local service/model.</td></tr>
+        <tr><td>Cloud AI</td><td><span class="tag amber">Partial</span></td><td>Browser directly calls Anthropic, OpenAI, or Gemini APIs.</td><td>Provider calls need the user's key and network access; the key is not persisted by current dashboard state.</td></tr>
+        <tr><td>MCP</td><td><span class="tag amber">Disabled / placeholder</span></td><td>Dashboard describes the disabled state; bridge rejects MCP startup until a reviewed registry exists.</td><td>No server registry or active process lifecycle is implemented.</td></tr>
+        <tr><td>Skills</td><td><span class="tag amber">Planned placeholders</span></td><td>Displays example named tasks without executing them.</td><td>Command execution and unreviewed snippets remain disabled.</td></tr>
         <tr><td>Security / audit</td><td><span class="tag amber">Static display</span></td><td>Shows explanatory security and audit status labels.</td><td>Labels are hard-coded UI content; there is no persistent action audit log or scan implementation behind them.</td></tr>
         <tr><td>Claude Desktop config</td><td><span class="tag amber">Bridge API only</span></td><td>Bridge reads/writes the per-user Claude Desktop JSON config and backs up before write.</td><td>No corresponding configuration editor is exposed in current dashboard navigation.</td></tr>
       </tbody>
@@ -297,9 +297,9 @@
     <h2>5. Bridge/API reference</h2>
     <h3>Connection and authentication</h3>
     <ul>
-      <li>Default bridge port: <code>8787</code>. If busy, the script probes a short configured list of alternatives.</li>
+      <li>Default bridge port: <code>8787</code>. If busy, the Python server probes a short configured list of alternatives.</li>
       <li>Listener prefix: <code>http://127.0.0.1:&lt;port&gt;/</code>.</li>
-      <li>A random 16-byte token is generated at startup when no token parameter is supplied; requests use <code>Authorization: Bearer &lt;token&gt;</code>.</li>
+      <li>A random bearer token is generated in memory at startup. The browser redeems a 60-second, single-use bootstrap code supplied in the URL fragment.</li>
       <li>Host, remote IP, and non-null origin are checked for local request patterns; protected API routes call the shared authorization function.</li>
       <li>Ollama base URL defaults to <code>http://127.0.0.1:11434</code> and can be overridden with a script parameter.</li>
     </ul>
@@ -307,6 +307,9 @@
     <table>
       <thead><tr><th>Method + route</th><th>Purpose / data</th><th>Impact</th></tr></thead>
       <tbody>
+        <tr><td class="mono">GET /, /pc-control-dashboard.html</td><td>Serve dashboard HTML from the same loopback origin as its API.</td><td>Public local page</td></tr>
+        <tr><td class="mono">GET /api/bridge-probe</td><td>Unauthenticated, content-free check used to verify the dashboard origin.</td><td>Local availability metadata</td></tr>
+        <tr><td class="mono">POST /api/bootstrap</td><td>Exchange a 60-second, single-use code from the exact local origin for an in-memory bearer token.</td><td>One-time authentication setup</td></tr>
         <tr><td class="mono">GET /api/ping</td><td>Connection status, admin flag, computer and user name.</td><td>Local identity metadata</td></tr>
         <tr><td class="mono">GET /api/health</td><td>OS caption/build and uptime.</td><td>System metadata</td></tr>
         <tr><td class="mono">GET /api/actions</td><td>Action registry with permission, risk, approval and audit labels.</td><td>Read-only metadata</td></tr>
@@ -317,12 +320,12 @@
         <tr><td class="mono">GET /api/services</td><td>Enumerate Windows service name, display name, status and startup type.</td><td>System metadata</td></tr>
         <tr><td class="mono">POST /api/service</td><td>Start, stop or restart a named Windows service.</td><td><span class="tag red">System mutation</span></td></tr>
         <tr><td class="mono">POST /api/action</td><td>Run a named allowlisted action; checks registration, approval and admin flag.</td><td>Varies; some require explicit approved field</td></tr>
-        <tr><td class="mono">POST /api/run</td><td>Compile and execute supplied PowerShell script block; returns text.</td><td><span class="tag red">Arbitrary code execution</span></td></tr>
+        <tr><td class="mono">POST /api/run</td><td>Explicitly disabled; arbitrary PowerShell input is rejected.</td><td><span class="tag green">HTTP 403</span></td></tr>
         <tr><td class="mono">GET /api/ollama/tags</td><td>Proxy installed Ollama model list.</td><td>Local inference metadata</td></tr>
         <tr><td class="mono">POST /api/ollama/chat</td><td>Proxy chat request; forces non-streaming mode for JSON response handling.</td><td>Local inference</td></tr>
-        <tr><td class="mono">GET /api/mcp/status</td><td>Show process IDs/running state for bridge-managed processes.</td><td>Process metadata</td></tr>
-        <tr><td class="mono">POST /api/mcp/start</td><td>Start a supplied executable with args and optional environment values.</td><td><span class="tag red">Process launch</span></td></tr>
-        <tr><td class="mono">POST /api/mcp/stop</td><td>Stop a bridge-tracked process.</td><td><span class="tag amber">Process termination</span></td></tr>
+        <tr><td class="mono">GET /api/mcp/status</td><td>Return empty status while no reviewed server registry is configured.</td><td>Placeholder</td></tr>
+        <tr><td class="mono">POST /api/mcp/start</td><td>Explicitly disabled until a reviewed server registry exists.</td><td><span class="tag green">HTTP 403</span></td></tr>
+        <tr><td class="mono">POST /api/mcp/stop</td><td>No managed-process lifecycle is currently connected.</td><td>Placeholder</td></tr>
         <tr><td class="mono">GET /api/claude-config</td><td>Read Claude Desktop config JSON from the current user profile.</td><td>Potentially sensitive config</td></tr>
         <tr><td class="mono">POST /api/claude-config</td><td>Validate JSON, make timestamped backup, then write config.</td><td><span class="tag red">User config write</span></td></tr>
       </tbody>
@@ -336,7 +339,7 @@
         <tr><td>Cleanup</td><td>Empty recycle bin; clean user temp directory.</td><td>Approval-required in registry; destructive file operations.</td></tr>
       </tbody>
     </table>
-    <div class="callout danger"><strong>Important implementation gap:</strong> the bridge exposes more powerful routes than the UI action registry implies. In particular, <code>/api/run</code>, service changes, PID termination, and MCP process launch are bearer-token protected but are not restricted by an allowlisted command policy. A token holder must be treated as a highly trusted local operator.</div>
+    <div class="callout warning"><strong>Current policy:</strong> <code>/api/run</code> and MCP startup are disabled; process, service, configuration, and high-impact action writes require explicit server-side approval. The bridge remains a powerful local trust boundary and must not be exposed to a network.</div>
   </section>
 
   <section class="chapter">
@@ -354,12 +357,12 @@
     <table>
       <thead><tr><th>Risk</th><th>Likelihood / impact</th><th>Why it matters</th><th>Recommended treatment</th></tr></thead>
       <tbody>
-        <tr><td>Arbitrary command execution by token holder</td><td><span class="tag red">Critical impact</span></td><td><code>/api/run</code> executes caller-supplied PowerShell with the bridge user's permissions.</td><td>Disable by default or replace with named allowlisted tasks, restricted arguments, timeouts, output caps, and explicit server-side policy.</td></tr>
-        <tr><td>Browser token / cloud key in localStorage</td><td><span class="tag red">High</span></td><td>Current state object saves bridge token and cloud key in the browser origin's local storage.</td><td>Do not reuse browser profiles; minimize persistence; separate cloud keys; document origin/XSS exposure; consider OS-backed secret storage.</td></tr>
-        <tr><td>Wide Windows management routes</td><td><span class="tag red">High</span></td><td>Service/process/MCP routes accept mutation requests without a central least-privilege action policy.</td><td>Validate request schema and targets; add explicit approval on server and auditable allowlists.</td></tr>
+        <tr><td>Local bridge compromise</td><td><span class="tag red">High impact</span></td><td>A valid local bearer token can access sensitive workstation metadata and invoke reviewed Windows operations.</td><td>Keep loopback-only; protect browser and workstation; retain approval checks and conservative named actions.</td></tr>
+        <tr><td>Bootstrap link exposure</td><td><span class="tag amber">Short-lived</span></td><td>The browser launch URL contains a one-time setup code in its fragment for up to 60 seconds.</td><td>Fragment is removed before exchange; code expires and cannot be replayed; do not share the temporary URL.</td></tr>
+        <tr><td>Wide Windows management routes</td><td><span class="tag amber">Medium</span></td><td>Process and service endpoints can mutate local state, but require explicit server-side approval; MCP startup is disabled.</td><td>Keep request schemas strict, review each named action, and test mutations only in a controlled environment.</td></tr>
         <tr><td>Misleading static security indicators</td><td><span class="tag amber">Medium</span></td><td>Security and audit UI rows are hard-coded, not derived from event data.</td><td>Label as guidance until actual checks and durable audit events exist.</td></tr>
         <tr><td>Silent dashboard failures</td><td><span class="tag amber">Medium</span></td><td>Some fetch/load code catches and suppresses exceptions; users may see stale/placeholder metrics.</td><td>Expose per-panel last-updated, error message, and retry states; never present stale values as fresh.</td></tr>
-        <tr><td>Local file discovery scope</td><td><span class="tag amber">Medium</span></td><td>Project discovery roots include profile/Desktop/program directories and process working directory; paths reveal user data layout.</td><td>Use explicit approved workspaces; least-data default; redact paths in exports.</td></tr>
+        <tr><td>Local file discovery scope</td><td><span class="tag amber">Low</span></td><td>Project discovery lists the bridge's project folder and immediate child Git repositories; paths reveal local workspace layout.</td><td>Keep discovery bounded and avoid including sensitive paths in shared exports.</td></tr>
         <tr><td>Public bridge exposure</td><td><span class="tag red">Unacceptable</span></td><td>Machine-control API is not a hosted multi-user service; network exposure could transfer control.</td><td>Never publish the real bridge. Public demo must use synthetic backend and no machine capability.</td></tr>
       </tbody>
     </table>
@@ -367,7 +370,7 @@
     <ul>
       <li>Bridge responses include computer name, user name, CPU/memory/disk usage, process names, service inventory, candidate folder paths, and optionally project Git state.</li>
       <li>Local AI prompts go to the configured local Ollama server by default; the bridge forwards chat content and model name.</li>
-      <li>Cloud chat sends prompt contents and an API key directly from the browser to the selected third-party provider. The cloud key is persisted in the current browser state implementation.</li>
+      <li>Cloud chat sends prompt contents and an API key directly from the browser to the selected third-party provider. The cloud key remains in memory and is not persisted in browser storage.</li>
       <li>No code in the reviewed project establishes a telemetry or analytics system. The absence of observed telemetry is not a substitute for a documented release privacy review.</li>
     </ul>
     <div class="callout warning"><strong>Safe deployment model:</strong> keep the workstation UI/bridge private and local. If sharing a demo publicly, run a separate version with mock data and no routes to local processes, files, services, shell, models, or credentials.</div>
@@ -379,15 +382,15 @@
     <table>
       <thead><tr><th>Check</th><th>Observed result</th><th>Evidence boundary</th></tr></thead>
       <tbody>
-        <tr><td>Windows PowerShell syntax</td><td><span class="tag green">Pass</span> Windows PowerShell 5.1 AST parser reported no parse errors after the authorization fix and after the Ollama route update.</td><td>One PowerShell runtime; PowerShell 7 compatibility not exercised.</td></tr>
-        <tr><td>Frontend inline JavaScript parse</td><td><span class="tag green">Pass</span> Extracted inline script compiled with Node.js <code>new Function</code>.</td><td>Syntax check does not prove all runtime paths.</td></tr>
-        <tr><td>Bridge authentication</td><td><span class="tag green">Pass</span> Valid token ping returned HTTP 200; absent and incorrect token returned HTTP 401.</td><td>Local loopback smoke test only.</td></tr>
-        <tr><td>Origin check</td><td><span class="tag green">Pass</span> A request with an invalid external Origin was rejected with HTTP 403.</td><td>Does not replace a full browser-origin / CSRF assessment.</td></tr>
-        <tr><td>Read APIs</td><td><span class="tag green">Pass</span> Stats, projects, processes, and services returned HTTP 200 in local smoke tests.</td><td>Host-specific results; no load or stress tests.</td></tr>
-        <tr><td>Integrated browser navigation</td><td><span class="tag green">Pass</span> All 12 page headings were traversed in the VS Code integrated browser.</td><td>Browser user-agent reported Chromium 150 / Electron 43 on Windows 11; not a matrix test of installed Edge/Chrome/Firefox products.</td></tr>
-        <tr><td>Operational UI</td><td><span class="tag green">Pass</span> Overview metrics, discovered projects, 60 process rows, service rows, and local model list populated.</td><td>Representative workstation only.</td></tr>
-        <tr><td>Terminal</td><td><span class="tag green">Pass</span> Read-only command <code>Get-Date -Format yyyy-MM-dd</code> returned output and a completed state.</td><td>Does not make arbitrary command execution safe.</td></tr>
-        <tr><td>Local AI chat</td><td><span class="tag green">Pass after fix</span> Local selected model returned the exact test response <code>READY</code> through dashboard → bridge → Ollama.</td><td>One installed model and one short prompt; no throughput/quality tests.</td></tr>
+        <tr><td>Python bridge syntax</td><td><span class="tag green">Pass</span> <code>py -3 -m py_compile bridge.py tests\test_bridge.py</code> completed successfully.</td><td>Current available Python 3.14 runtime; Python 3.10 minimum was not separately installed.</td></tr>
+        <tr><td>Dashboard syntax, navigation, routes</td><td><span class="tag green">Pass</span> Node check compiled the inline script and verified 12 navigation targets, 10 API routes, and 78 DOM IDs.</td><td>Static structural check, not full browser interaction.</td></tr>
+        <tr><td>Python bridge unit tests</td><td><span class="tag green">Pass</span> Six standard-library tests cover dashboard/probe serving, authentication, one-time bootstrap expiry/replay, route behavior, approvals, input limits, and parallel ping during slow chat.</td><td>Windows/Ollama operations are stubbed where appropriate; no mutation tests.</td></tr>
+        <tr><td>Legacy PowerShell syntax/smoke</td><td><span class="tag green">Pass (legacy)</span> Earlier parser and smoke tests passed for <code>bridge.ps1</code>.</td><td>Legacy bridge only; not evidence for the Python default runtime.</td></tr>
+        <tr><td>Python-served browser integration</td><td><span class="tag green">Pass</span> One-time fragment bootstrap connected automatically, removed the code from the visible URL, and kept the token out of saved browser state. All 12 sections navigated successfully.</td><td>One integrated Chromium-based browser and one local workstation.</td></tr>
+        <tr><td>Live Windows data routes</td><td><span class="tag green">Pass</span> Overview returned CPU/RAM/disk data; project list loaded; Processes rendered 60 rows and Services rendered 296 rows; process-name filtering worked.</td><td>Read-only checks on the current Windows machine; no process or service mutation.</td></tr>
+        <tr><td>Ollama integration</td><td><span class="tag green">Pass</span> 15 installed models were listed and a local chat returned <code>READY</code>; sidebar remained Connected.</td><td>One local model and a short prompt; no throughput/quality tests.</td></tr>
+        <tr><td>One-click batch launcher</td><td><span class="tag green">Pass</span> Double-click launcher smoke run exited successfully, selected fallback port 8789, and served dashboard (HTTP 200) and bridge probe (HTTP 204).</td><td>Python 3.14 and one Windows host; no multi-version matrix.</td></tr>
+        <tr><td>Terminal and MCP startup</td><td><span class="tag green">Disabled</span> Unsafe routes are rejected by policy and exercised in tests.</td><td>No arbitrary command or MCP process execution is available.</td></tr>
         <tr><td>Firefox</td><td><span class="tag amber">Not tested</span> Firefox executable was not present in the test environment.</td><td>No claim of Firefox support validation.</td></tr>
       </tbody>
     </table>
@@ -395,21 +398,22 @@
     <ol>
       <li><strong>PowerShell parser failure:</strong> malformed token comparison and duplicate authorization helper prevented the bridge script from parsing. Replaced it with one valid check and updated the request handler to use that function.</li>
       <li><strong>Local AI empty responses:</strong> dashboard read a single JSON object, but the bridge forwarded Ollama's default stream mode. The bridge now requests <code>stream = false</code> and returns the complete response; the UI chat was then verified.</li>
-      <li><strong>Startup instructions:</strong> corrected README and settings guidance so normal startup uses a regular PowerShell session and explains the user-scoped execution-policy bypass.</li>
+      <li><strong>One-click startup and connection:</strong> added a Python standard-library server, a double-click Windows launcher, and a single-use in-memory browser bootstrap credential. Browser bearer tokens are not saved to localStorage.</li>
+      <li><strong>Non-blocking API work:</strong> the Python bridge uses bounded request threads so slow local inference does not block ping.</li>
     </ol>
-    <div class="callout"><strong>Not performed:</strong> full unit/automation test suite, Windows service mutation tests, reboot/shutdown tests, external network exposure, adversarial security review, Firefox UI run, and public staging deployment.</div>
+    <div class="callout"><strong>Not performed:</strong> service/process/power mutation tests, external network exposure, adversarial security review, Firefox UI run, Python 3.10 compatibility run, and public staging deployment.</div>
   </section>
 
   <section class="chapter">
     <h2>8. Known limitations and recommendations</h2>
     <h3>Immediate P0 — required before broader local rollout</h3>
     <ol>
-      <li><strong>Contain command execution.</strong> Replace general-purpose <code>/api/run</code> with named safe operations, configurable allowlists, and argument schemas. If unrestricted shell access is intentional, make the trusted-user risk explicit and disable it by default.</li>
+      <li><strong>Keep command execution disabled.</strong> <code>/api/run</code> returns HTTP 403; do not re-enable arbitrary scripts. If named terminal tasks are added, define fixed operations, strict argument schemas, timeouts, output caps, and explicit server-side approvals.</li>
       <li><strong>Unify authorization and policy.</strong> Every mutating route (actions, service, process, MCP, config write, command execution) should pass a central policy function with role, target, approval, and audit metadata.</li>
-      <li><strong>Bound request and execution resource use.</strong> Set request body size caps, command duration/timeouts, output size limits, and cancellation behavior. Registry timeout/output labels are metadata today and are not consistently enforced by the routes.</li>
+      <li><strong>Complete resource limits.</strong> Request bodies are capped at 1 MiB and server concurrency is bounded; ensure PowerShell output limits and cancellation behavior are also consistently enforced and tested.</li>
       <li><strong>Make errors visible.</strong> Remove silent catches in stats/provider flows; add last-success timestamp, error message, retry, and stale-data indication to each panel.</li>
       <li><strong>Protect browser state.</strong> Handle invalid JSON/corrupt localStorage and browser storage denial. Avoid storing cloud API keys and long-lived bridge credentials unnecessarily; provide an explicit clear/logout flow.</li>
-      <li><strong>Review discovery and configuration endpoints.</strong> Limit project discovery to user-approved roots; restrict Claude config read/write to an intentional UI, with backups and clear confirmation.</li>
+      <li><strong>Review configuration endpoints.</strong> Project discovery is limited to the project folder and immediate Git repositories; restrict Claude config read/write to an intentional UI, with backups and clear confirmation.</li>
     </ol>
     <h3>P1 — release quality</h3>
     <ul>
@@ -471,41 +475,39 @@
     <h2>10. Installation, startup, and daily-use guide</h2>
     <h3>Prerequisites</h3>
     <ul>
-      <li>Windows with Windows PowerShell; regular user permissions for normal read/status use.</li>
+      <li>Windows 10/11 with Python 3.10 or newer; Windows PowerShell 5.1 is invoked for system operations.</li>
       <li>A current browser. The UI was exercised in the VS Code integrated Chromium browser; other browser products should be tested directly before claiming support.</li>
-      <li>Optional: Python for the simple static HTTP server, or another local static-file host. The bridge itself does not require Node.js.</li>
+      <li>No pip packages or separate web server are required; the Python standard-library bridge serves the HTML dashboard and API.</li>
       <li>Optional: Ollama reachable at <code>http://127.0.0.1:11434</code> with at least one pulled model.</li>
     </ul>
     <h3>Start the bridge</h3>
     <div class="card tint">
-      <p>Open a regular PowerShell terminal in the project folder and start the bridge using a process-scoped execution-policy bypass:</p>
-      <p><code>powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\bridge.ps1</code></p>
-      <p>The bridge prints the listening URL and a generated bearer token. Keep the terminal open while the bridge is in use. Stop it with <code>Ctrl+C</code>.</p>
+      <p>Double-click <code>Start-Helpyard.bat</code>, or start from PowerShell with:</p>
+      <p><code>py -3 .\bridge.py --open-browser</code></p>
+      <p>The launcher starts a minimized bridge console. Keep it open while using the dashboard; close it or press <code>Ctrl+C</code> there to stop the service. The bridge does not print its bearer token.</p>
     </div>
-    <h3>Serve and open the dashboard</h3>
+    <h3>Open the dashboard</h3>
     <div class="card tint">
-      <p>In another terminal, serve this directory on loopback:</p>
-      <p><code>python -m http.server 8000 --bind 127.0.0.1</code></p>
-      <p>Open <code>http://127.0.0.1:8000/pc-control-dashboard.html</code> in the browser. Serving over localhost provides predictable browser origin/fetch behavior.</p>
+      <p>The launcher opens a temporary connection URL in the default browser. The browser consumes a short-lived one-time code from its fragment, removes the fragment, and keeps the returned bearer token in memory. Dashboard and API share one loopback origin even when a fallback port is selected.</p>
     </div>
     <h3>Connect and operate</h3>
     <ol>
       <li>Open Settings from the sidebar.</li>
-      <li>Enter the bridge URL printed in PowerShell (default port 8787 unless the selected port was changed).</li>
-      <li>Paste the generated token and select Save &amp; connect. The sidebar should show Connected and the host name.</li>
+      <li>The Bridge URL is detected from the Dashboard URL; verify it matches the current bridge run.</li>
+      <li>The browser connects automatically and the sidebar should show Connected and the host name. Manual token storage is not required.</li>
       <li>Use Overview first; navigate to Projects, Processes, Services, or Local AI only as needed. Refresh buttons reload related data.</li>
       <li>Use Terminal and action buttons only for commands/actions understood and intentionally authorized. A browser confirmation does not sandbox or neutralize the command.</li>
-      <li>Clear saved browser data from Settings when finished on a shared profile. Stop the bridge and static server when done.</li>
+      <li>Clear saved browser data from Settings when finished on a shared profile. Stop the bridge when done.</li>
     </ol>
     <h3>Common recovery</h3>
     <table>
       <thead><tr><th>Symptom</th><th>Check</th><th>Response</th></tr></thead>
       <tbody>
-        <tr><td>Sidebar stays Offline</td><td>Bridge process, URL/selected port, token, local server origin.</td><td>Copy the latest bridge URL/token from startup output and reconnect in Settings.</td></tr>
+        <tr><td>Sidebar stays Offline</td><td>Bridge process is still running; browser opened from the current launcher run; connection code has not expired.</td><td>Close the bridge and double-click <code>Start-Helpyard.bat</code> again to create a fresh one-time session.</td></tr>
         <tr><td>Ollama Offline / no models</td><td>Ollama service and model list endpoint.</td><td>Start Ollama, pull a model, refresh Local AI; dashboard remains usable without AI.</td></tr>
         <tr><td>Administrator-required action rejected</td><td>Bridge says the current process is not elevated.</td><td>Use the standard account for routine work. Elevate only if the specific action is required and understood.</td></tr>
-        <tr><td>Port conflict</td><td>Bridge startup output reports selected fallback port.</td><td>Use the printed URL, not the default, in Settings.</td></tr>
-        <tr><td>Browser cannot fetch bridge</td><td>Verify both services are on localhost and inspect browser console/network.</td><td>Serve the HTML on loopback; avoid remote origins and do not broaden bridge binding.</td></tr>
+        <tr><td>Port conflict</td><td>Bridge startup output reports selected fallback port.</td><td>Open the printed Dashboard URL; the Bridge URL is detected automatically.</td></tr>
+        <tr><td>Browser cannot fetch bridge</td><td>Verify the bridge terminal is still running and the Dashboard URL is from that run.</td><td>Restart the bridge and open its new Dashboard URL; avoid remote origins and do not broaden bridge binding.</td></tr>
       </tbody>
     </table>
   </section>
@@ -517,7 +519,10 @@
       <thead><tr><th>File</th><th>Role</th><th>Report note</th></tr></thead>
       <tbody>
         <tr><td><code>pc-control-dashboard.html</code></td><td>Application interface, styling and browser logic.</td><td>Single-file dashboard; main user entry point.</td></tr>
-        <tr><td><code>bridge.ps1</code></td><td>Windows localhost HTTP service and route handlers.</td><td>Privileged trust boundary; must not be public-hosted.</td></tr>
+        <tr><td><code>bridge.py</code></td><td>Default Windows localhost HTTP service and API routes; invokes fixed Windows PowerShell scripts.</td><td>Privileged trust boundary; must not be public-hosted.</td></tr>
+        <tr><td><code>Start-Helpyard.bat</code></td><td>One-click Python version check and minimized bridge/browser startup.</td><td>Requires Python 3.10+ installed for Windows.</td></tr>
+        <tr><td><code>bridge.ps1</code></td><td>Legacy PowerShell bridge retained for manual use and its separate smoke test.</td><td>Not used by the default launcher.</td></tr>
+        <tr><td><code>tests\test_bridge.py</code></td><td>Standard-library Python API and security regression tests.</td><td>Uses stubs for Windows/Ollama operations; see README for scope.</td></tr>
         <tr><td><code>README.md</code></td><td>Startup, safety and validation guidance.</td><td>Updated to reflect regular-user startup and loopback serving.</td></tr>
         <tr><td><code>update plan no1.txt</code></td><td>Original product vision and broad implementation ideas.</td><td>Describes future project intelligence, editor and 3D workspace goals; those goals are not all implemented.</td></tr>
         <tr><td><code>Plannumber1.Pdf</code></td><td>Numbered upgrade and launch plan.</td><td>Prior companion deliverable; execution gates and phase plan.</td></tr>
