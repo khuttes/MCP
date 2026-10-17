@@ -1,0 +1,6 @@
+HELPYARD — 3D AI Cyber Development Lab
+Professional implementation blueprint · Local-first · Single-page application · Future-ready architecture
+Your goal is to turn Helpyard into a complete, futuristic AI development workspace—not just a dashboard.
+Imagine opening one homepage and having your projects, code editor, AI assistant, terminal, GitHub, security analysis, local AI models, and system monitoring available within a single immersive cyber-lab interface.
+The critical requirement is that the entire frontend runs locally using one HTML file containing HTML, CSS, and JavaScript. 
+No Python backend, no Node.js server, and no mandatory cloud service. Your future upgrades should extend this foundation without requiring a complete rewrite.
