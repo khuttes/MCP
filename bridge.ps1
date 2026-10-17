@@ -323,14 +323,19 @@ try {
 
         'GET /api/stats' {
           $os   = Get-CimInstance Win32_OperatingSystem
-          $cpu  = (Get-CimInstance Win32_Processor | Measure-Object LoadPercentage -Average).Average
-          $cpuN = (Get-CimInstance Win32_Processor | Select-Object -First 1).Name
+          $processors = @(Get-CimInstance Win32_Processor)
+          $cpu  = ($processors | Measure-Object LoadPercentage -Average).Average
+          $cpuN = ($processors | Select-Object -First 1).Name
+          $cpuCores = ($processors | Measure-Object NumberOfCores -Sum).Sum
+          $cpuThreads = ($processors | Measure-Object NumberOfLogicalProcessors -Sum).Sum
+          $cpuMaxMHz = ($processors | Measure-Object MaxClockSpeed -Maximum).Maximum
           $disks = Get-CimInstance Win32_LogicalDisk -Filter 'DriveType=3' | ForEach-Object {
             @{ name = $_.DeviceID; totalGB = [math]::Round($_.Size/1GB,1); freeGB = [math]::Round($_.FreeSpace/1GB,1) }
           }
           Send-Json $ctx @{
             host = $env:COMPUTERNAME; user = $env:USERNAME; admin = $isAdmin
             os = $os.Caption; build = $os.BuildNumber; cpuName = $cpuN
+            cpuCores = [int]$cpuCores; cpuThreads = [int]$cpuThreads; cpuMaxMHz = [int]$cpuMaxMHz
             cpu = [int]$cpu
             ramTotalGB = [math]::Round($os.TotalVisibleMemorySize/1MB,1)
             ramFreeGB  = [math]::Round($os.FreePhysicalMemory/1MB,1)
