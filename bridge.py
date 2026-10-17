@@ -656,6 +656,7 @@ class BridgeRequestHandler(BaseHTTPRequestHandler):
                 if self.server.bootstrap_consumed or not hmac.compare_digest(code, self.server.bootstrap_code):
                     raise BridgeError(401, "The browser connection code is invalid or already used.")
                 self.server.bootstrap_consumed = True
+                self.server.bootstrap_code = ""
             return {"token": self.server.token}
 
         self._authorize()
