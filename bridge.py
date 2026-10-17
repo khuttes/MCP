@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import base64
 import ctypes
+from contextlib import contextmanager
 import hashlib
 import hmac
 import ipaddress
@@ -12,19 +13,22 @@ import json
 import os
 import re
 import secrets
+import shutil
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 import webbrowser
-from datetime import datetime
+import uuid
+from datetime import datetime, timezone
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 from ctypes import wintypes
 
 ROOT = Path(__file__).resolve().parent
@@ -33,6 +37,27 @@ MAX_REQUEST_BYTES = 1_048_576
 BOOTSTRAP_TTL_SECONDS = 60
 DEFAULT_OLLAMA_URL = "http://127.0.0.1:11434"
 PORT_CANDIDATES = (8787, 8788, 8789, 8790, 8791, 8792, 8800, 9000, 9001)
+SKILLS_SCHEMA_VERSION = 2
+MAX_SKILLS = 500
+MAX_SKILLS_FILE_BYTES = 64 * 1024 * 1024
+SKILLS_LOCK = threading.RLock()
+SKILLS_FILE_LOCK_STATE = threading.local()
+BUILTIN_SKILL_DEFINITIONS = [
+    ("00000000-0000-4000-8000-000000000001", "Show IP addresses", "Network", "Local network addresses", "Display IPv4 addresses assigned to local network interfaces."),
+    ("00000000-0000-4000-8000-000000000002", "Top memory apps", "Performance", "15 biggest memory users", "List the 15 processes using the most working-set memory."),
+    ("00000000-0000-4000-8000-000000000003", "Disk usage", "Storage", "Used and free space per drive", "Show capacity and free space for fixed disks."),
+    ("00000000-0000-4000-8000-000000000004", "Installed apps", "Software", "List installed programs", "List installed program names and versions from Windows uninstall registry entries."),
+    ("00000000-0000-4000-8000-000000000005", "Open ports", "Network", "Listening TCP ports", "Show TCP ports in the listening state and their owning process IDs."),
+    ("00000000-0000-4000-8000-000000000006", "Startup programs", "System", "What starts with Windows", "List registered Windows startup commands without running them."),
+    ("00000000-0000-4000-8000-000000000007", "Defender status", "Security", "Antivirus protection state", "Show Windows Defender service and real-time protection status."),
+    ("00000000-0000-4000-8000-000000000008", "Wi-Fi status", "Network", "Current wireless connection", "Show local Wi-Fi interface and connection profile status."),
+    ("00000000-0000-4000-8000-000000000009", "GPU info", "Hardware", "Graphics card and driver", "Show detected graphics adapters and driver versions."),
+    ("00000000-0000-4000-8000-000000000010", "Battery", "Hardware", "Charge level", "Show battery charge and status when a battery is present."),
+    ("00000000-0000-4000-8000-000000000011", "Recent updates", "System", "Last 10 Windows updates", "Show the ten most recently installed Windows hotfixes."),
+    ("00000000-0000-4000-8000-000000000012", "Dev tool versions", "Development", "Node, Python, Git, Ollama", "Show versions for Python and selected developer tools found in standard installation locations."),
+    ("00000000-0000-4000-8000-000000000013", "Ollama models", "AI", "Installed local AI models", "List models available from the configured local Ollama service."),
+]
+RUNNABLE_SKILL_IDS = {definition[0] for definition in BUILTIN_SKILL_DEFINITIONS}
 
 
 class BridgeError(Exception):
@@ -221,6 +246,69 @@ ACTION_SCRIPTS = {
     "perf_balanced": "powercfg.exe /setactive SCHEME_BALANCED; if ($LASTEXITCODE -ne 0) { throw 'Power plan change failed.' }; $result = 'Balanced plan active'",
     "perf_saver": "powercfg.exe /setactive SCHEME_MAX; if ($LASTEXITCODE -ne 0) { throw 'Power plan change failed.' }; $result = 'Power saver plan active'",
     "winupdate": "Start-Process 'ms-settings:windowsupdate'; $result = 'Windows Update opened'",
+}
+
+READ_ONLY_SKILL_SCRIPTS: dict[str, str] = {
+    BUILTIN_SKILL_DEFINITIONS[0][0]: (
+        "@(Get-NetIPAddress -AddressFamily IPv4 -ErrorAction Stop | "
+        "Where-Object { $_.IPAddress -ne '127.0.0.1' -and $_.IPAddress -notlike '169.254.*' } | "
+        "Select-Object InterfaceAlias, IPAddress, PrefixLength, AddressState)"
+    ),
+    BUILTIN_SKILL_DEFINITIONS[1][0]: (
+        "@(Get-Process -ErrorAction Stop | Sort-Object WorkingSet64 -Descending | Select-Object -First 15 | "
+        "ForEach-Object { @{ name = $_.ProcessName; id = $_.Id; memoryMB = [math]::Round($_.WorkingSet64 / 1MB, 1) } })"
+    ),
+    BUILTIN_SKILL_DEFINITIONS[2][0]: (
+        "@(Get-CimInstance Win32_LogicalDisk -Filter 'DriveType=3' | "
+        "ForEach-Object { @{ drive = $_.DeviceID; totalGB = [math]::Round($_.Size / 1GB, 1); "
+        "freeGB = [math]::Round($_.FreeSpace / 1GB, 1); usedGB = [math]::Round(($_.Size - $_.FreeSpace) / 1GB, 1) } })"
+    ),
+    BUILTIN_SKILL_DEFINITIONS[3][0]: (
+        "$apps = @(foreach ($key in @('HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*', "
+        "'HKLM:\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*', "
+        "'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*')) { "
+        "Get-ItemProperty -Path $key -ErrorAction SilentlyContinue | "
+        "Where-Object { $_.DisplayName } | Select-Object @{N='name';E={$_.DisplayName}}, "
+        "@{N='version';E={$_.DisplayVersion}}, @{N='publisher';E={$_.Publisher}} }); "
+        "[ordered]@{ items = @($apps | Sort-Object name -Unique | Select-Object -First 200); truncated = ($apps.Count -gt 200) }"
+    ),
+    BUILTIN_SKILL_DEFINITIONS[4][0]: (
+        "$processNames = @{}; Get-Process -ErrorAction SilentlyContinue | "
+        "ForEach-Object { $processNames[[string]$_.Id] = $_.ProcessName }; "
+        "$allPorts = @(Get-NetTCPConnection -State Listen -ErrorAction Stop); "
+        "$ports = @($allPorts | Sort-Object LocalPort | Select-Object -First 250 | "
+        "ForEach-Object { @{ address = $_.LocalAddress; port = $_.LocalPort; "
+        "processId = $_.OwningProcess; process = $processNames[[string]$_.OwningProcess] } }); "
+        "[ordered]@{ items = $ports; truncated = ($allPorts.Count -gt 250) }"
+    ),
+    BUILTIN_SKILL_DEFINITIONS[5][0]: (
+        "$allItems = @(Get-CimInstance Win32_StartupCommand -ErrorAction Stop); "
+        "$items = @($allItems | Select-Object -First 200 Name, Location, User); "
+        "[ordered]@{ items = $items; truncated = ($allItems.Count -gt 200) }"
+    ),
+    BUILTIN_SKILL_DEFINITIONS[6][0]: (
+        "$status = Get-MpComputerStatus -ErrorAction Stop; "
+        "[ordered]@{ antivirusEnabled = $status.AntivirusEnabled; realTimeProtectionEnabled = $status.RealTimeProtectionEnabled; "
+        "antispywareEnabled = $status.AntispywareEnabled; quickScanAgeDays = $status.QuickScanAge; fullScanAgeDays = $status.FullScanAge }"
+    ),
+    BUILTIN_SKILL_DEFINITIONS[7][0]: (
+        "@(Get-NetConnectionProfile -ErrorAction Stop | "
+        "Where-Object { $_.InterfaceAlias -match '(?i)wi-?fi|wireless' } | "
+        "Select-Object Name, InterfaceAlias, NetworkCategory, IPv4Connectivity, IPv6Connectivity)"
+    ),
+    BUILTIN_SKILL_DEFINITIONS[8][0]: (
+        "@(Get-CimInstance Win32_VideoController -ErrorAction Stop | "
+        "Select-Object Name, DriverVersion, @{N='adapterMemoryMB';E={[math]::Round($_.AdapterRAM / 1MB, 0)}})"
+    ),
+    BUILTIN_SKILL_DEFINITIONS[9][0]: (
+        "$batteries = @(Get-CimInstance Win32_Battery -ErrorAction Stop | "
+        "Select-Object Name, EstimatedChargeRemaining, BatteryStatus); "
+        "[ordered]@{ available = ($batteries.Count -gt 0); items = $batteries }"
+    ),
+    BUILTIN_SKILL_DEFINITIONS[10][0]: (
+        "@(Get-HotFix -ErrorAction Stop | Sort-Object InstalledOn -Descending | "
+        "Select-Object -First 10 HotFixID, Description, InstalledOn, InstalledBy)"
+    ),
 }
 
 
@@ -434,6 +522,429 @@ def set_claude_config(content: Any) -> dict[str, Any]:
     return {"ok": True, "path": str(path)}
 
 
+def skills_file_path() -> Path:
+    appdata = os.environ.get("APPDATA")
+    base = Path(appdata) if appdata else Path.home() / ".helpyard"
+    return base / "Helpyard" / "skills.json" if appdata else base / "skills.json"
+
+
+def default_skills() -> dict[str, Any]:
+    now = datetime.now(timezone.utc).isoformat()
+    return {
+        "schemaVersion": SKILLS_SCHEMA_VERSION,
+        "skills": [
+            {
+                "id": skill_id,
+                "name": name,
+                "category": category,
+                "description": description,
+                "instructions": f"{description}. This built-in check is read-only; review its results locally.",
+                "status": "enabled",
+                "builtIn": True,
+                "pinned": False,
+                "runnerId": skill_id,
+                "createdAt": now,
+                "updatedAt": now,
+                "version": 1,
+            }
+            for skill_id, name, category, description, _ in BUILTIN_SKILL_DEFINITIONS
+        ],
+    }
+
+
+def _valid_timestamp(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    try:
+        datetime.fromisoformat(value)
+    except ValueError:
+        return False
+    return True
+
+
+def _validate_skill_record(record: Any) -> bool:
+    if not isinstance(record, dict) or set(record) != {
+        "id", "name", "category", "description", "instructions", "status",
+        "builtIn", "pinned", "runnerId", "createdAt", "updatedAt", "version",
+    }:
+        return False
+    try:
+        valid_id = str(uuid.UUID(record["id"])) == record["id"]
+    except (ValueError, TypeError, AttributeError):
+        valid_id = False
+    return (
+        valid_id
+        and isinstance(record["name"], str) and 1 <= len(record["name"]) <= 120
+        and isinstance(record["category"], str) and 1 <= len(record["category"]) <= 80
+        and isinstance(record["description"], str) and len(record["description"]) <= 2000
+        and isinstance(record["instructions"], str) and 1 <= len(record["instructions"]) <= 20000
+        and isinstance(record["status"], str) and record["status"] in {"draft", "enabled", "disabled"}
+        and isinstance(record["builtIn"], bool)
+        and isinstance(record["pinned"], bool)
+        and (
+            (record["builtIn"] and record["runnerId"] == record["id"] and record["runnerId"] in RUNNABLE_SKILL_IDS)
+            or (not record["builtIn"] and record["runnerId"] is None)
+        )
+        and _valid_timestamp(record["createdAt"])
+        and _valid_timestamp(record["updatedAt"])
+        and isinstance(record["version"], int) and not isinstance(record["version"], bool)
+        and record["version"] >= 1
+    )
+
+
+def _validate_v1_skill_record(record: Any) -> bool:
+    if not isinstance(record, dict) or set(record) != {
+        "id", "name", "category", "description", "instructions", "status",
+        "createdAt", "updatedAt", "version",
+    }:
+        return False
+    try:
+        valid_id = str(uuid.UUID(record["id"])) == record["id"]
+    except (ValueError, TypeError, AttributeError):
+        valid_id = False
+    return (
+        valid_id
+        and isinstance(record["name"], str) and 1 <= len(record["name"]) <= 120
+        and isinstance(record["category"], str) and 1 <= len(record["category"]) <= 80
+        and isinstance(record["description"], str) and len(record["description"]) <= 2000
+        and isinstance(record["instructions"], str) and 1 <= len(record["instructions"]) <= 20000
+        and isinstance(record["status"], str) and record["status"] in {"draft", "enabled", "disabled"}
+        and _valid_timestamp(record["createdAt"])
+        and _valid_timestamp(record["updatedAt"])
+        and isinstance(record["version"], int) and not isinstance(record["version"], bool)
+        and record["version"] >= 1
+    )
+
+
+def _migrate_v1_skills(payload: Any) -> dict[str, Any]:
+    if (
+        not isinstance(payload, dict)
+        or set(payload) != {"schemaVersion", "skills"}
+        or type(payload.get("schemaVersion")) is not int
+        or payload["schemaVersion"] != 1
+        or not isinstance(payload.get("skills"), list)
+        or len(payload["skills"]) > MAX_SKILLS
+        or not all(_validate_v1_skill_record(item) for item in payload["skills"])
+        or len({item["id"] for item in payload["skills"]}) != len(payload["skills"])
+    ):
+        raise BridgeError(500, "Saved Skills data has an unsupported or invalid schema; the original file was preserved.")
+    skills = [
+        {**skill, "builtIn": False, "pinned": False, "runnerId": None}
+        for skill in payload["skills"]
+    ]
+    existing_ids = {skill["id"] for skill in skills}
+    for builtin in default_skills()["skills"]:
+        if len(skills) >= MAX_SKILLS:
+            break
+        if builtin["id"] not in existing_ids:
+            skills.append(builtin)
+    return {"schemaVersion": SKILLS_SCHEMA_VERSION, "skills": skills}
+
+
+def read_skills() -> dict[str, Any]:
+    path = skills_file_path()
+    with SKILLS_LOCK:
+        try:
+            if path.is_symlink():
+                raise BridgeError(500, "Saved Skills path must not be a symbolic link; the original path was preserved.")
+            if not path.exists():
+                with _skills_write_lock():
+                    if path.exists():
+                        return read_skills()
+                    payload = default_skills()
+                    _write_skills(payload)
+                    return payload
+            if path.stat().st_size > MAX_SKILLS_FILE_BYTES:
+                raise BridgeError(500, "Saved Skills data exceeds the size limit; the original file was preserved.")
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except BridgeError:
+            raise
+        except (OSError, UnicodeError) as exc:
+            raise BridgeError(500, "Could not read saved Skills; the original data was preserved.") from exc
+        except json.JSONDecodeError as exc:
+            raise BridgeError(500, "Saved Skills data is invalid JSON; the original file was preserved.") from exc
+        if isinstance(payload, dict) and type(payload.get("schemaVersion")) is int and payload["schemaVersion"] == 1:
+            with _skills_write_lock():
+                try:
+                    if path.stat().st_size > MAX_SKILLS_FILE_BYTES:
+                        raise BridgeError(500, "Saved Skills data exceeds the size limit; the original file was preserved.")
+                    latest_payload = json.loads(path.read_text(encoding="utf-8"))
+                except BridgeError:
+                    raise
+                except (OSError, UnicodeError) as exc:
+                    raise BridgeError(500, "Could not migrate saved Skills; the original file was preserved.") from exc
+                except json.JSONDecodeError as exc:
+                    raise BridgeError(500, "Saved Skills data is invalid JSON; the original file was preserved.") from exc
+                if isinstance(latest_payload, dict) and latest_payload.get("schemaVersion") != 1:
+                    return read_skills()
+                migrated = _migrate_v1_skills(latest_payload)
+                _write_skills(migrated)
+                return migrated
+        if (
+            not isinstance(payload, dict)
+            or set(payload) != {"schemaVersion", "skills"}
+            or type(payload.get("schemaVersion")) is not int
+            or payload.get("schemaVersion") != SKILLS_SCHEMA_VERSION
+            or not isinstance(payload.get("skills"), list)
+            or len(payload["skills"]) > MAX_SKILLS
+            or not all(_validate_skill_record(item) for item in payload["skills"])
+            or len({item["id"] for item in payload["skills"]}) != len(payload["skills"])
+        ):
+            raise BridgeError(500, "Saved Skills data has an unsupported or invalid schema; the original file was preserved.")
+        return payload
+
+
+def _write_skills(payload: dict[str, Any]) -> None:
+    path = skills_file_path()
+    temporary_path: str | None = None
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if path.is_symlink():
+            raise BridgeError(500, "Saved Skills path must not be a symbolic link; the original path was preserved.")
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", newline="\n", dir=path.parent,
+            prefix=f".{path.name}.", suffix=".tmp", delete=False,
+        ) as temporary:
+            temporary_path = temporary.name
+            json.dump(payload, temporary, ensure_ascii=False, indent=2)
+            temporary.write("\n")
+            temporary.flush()
+            os.fsync(temporary.fileno())
+        if Path(temporary_path).stat().st_size > MAX_SKILLS_FILE_BYTES:
+            raise BridgeError(413, "Saved Skills data exceeds the storage size limit.")
+        if path.is_file():
+            backup = path.with_name(
+                f"{path.name}.bak-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')}"
+            )
+            shutil.copy2(path, backup)
+        os.replace(temporary_path, path)
+        temporary_path = None
+    except OSError as exc:
+        raise BridgeError(500, "Could not safely save Skills data; existing data was preserved.") from exc
+    finally:
+        if temporary_path:
+            try:
+                os.unlink(temporary_path)
+            except OSError:
+                pass
+
+
+@contextmanager
+def _skills_write_lock() -> Iterator[None]:
+    if getattr(SKILLS_FILE_LOCK_STATE, "held", False):
+        yield
+        return
+    path = skills_file_path()
+    lock_path = path.with_name(path.name + ".lock")
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if lock_path.is_symlink():
+            raise BridgeError(500, "Skills lock path must not be a symbolic link.")
+        with lock_path.open("a+b") as lock_file:
+            if os.name == "nt":
+                import msvcrt
+
+                lock_file.seek(0)
+                if not lock_file.read(1):
+                    lock_file.seek(0)
+                    lock_file.write(b"\0")
+                    lock_file.flush()
+                lock_file.seek(0)
+                msvcrt.locking(lock_file.fileno(), msvcrt.LK_LOCK, 1)
+                SKILLS_FILE_LOCK_STATE.held = True
+                try:
+                    yield
+                finally:
+                    SKILLS_FILE_LOCK_STATE.held = False
+                    lock_file.seek(0)
+                    msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                import fcntl
+
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+                SKILLS_FILE_LOCK_STATE.held = True
+                try:
+                    yield
+                finally:
+                    SKILLS_FILE_LOCK_STATE.held = False
+                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+    except OSError as exc:
+        raise BridgeError(500, "Could not coordinate a safe Skills update.") from exc
+
+
+def _developer_tool_versions() -> dict[str, Any]:
+    program_files = Path(os.environ.get("ProgramFiles", r"C:\Program Files"))
+    local_app_data = os.environ.get("LOCALAPPDATA")
+    candidates: dict[str, list[Path]] = {
+        "Node": [program_files / "nodejs" / "node.exe"],
+        "Git": [program_files / "Git" / "cmd" / "git.exe", program_files / "Git" / "bin" / "git.exe"],
+        "Ollama": [program_files / "Ollama" / "ollama.exe"],
+    }
+    if local_app_data:
+        local = Path(local_app_data)
+        candidates["Node"].append(local / "Programs" / "nodejs" / "node.exe")
+        candidates["Git"].append(local / "Programs" / "Git" / "cmd" / "git.exe")
+        candidates["Ollama"].append(local / "Programs" / "Ollama" / "ollama.exe")
+
+    versions: dict[str, Any] = {"Python": {"available": True, "version": sys.version.split()[0]}}
+    for name, paths in candidates.items():
+        executable = next((path for path in paths if path.is_file()), None)
+        if executable is None:
+            versions[name] = {"available": False, "version": "Not found in standard install locations"}
+            continue
+        try:
+            result = subprocess.run(
+                [str(executable), "--version"],
+                capture_output=True,
+                text=True,
+                timeout=8,
+                check=False,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise BridgeError(504, f"{name} version check timed out.") from exc
+        except OSError as exc:
+            raise BridgeError(503, f"{name} version check could not start.") from exc
+        output = (result.stdout or result.stderr).strip()
+        if result.returncode != 0 or not output:
+            raise BridgeError(502, f"{name} did not return a version.")
+        versions[name] = {"available": True, "version": output[:200]}
+    return versions
+
+
+def set_skill_pinned(skill_id: Any, pinned: Any) -> dict[str, Any]:
+    if not isinstance(pinned, bool):
+        raise BridgeError(400, "Pinned state must be a JSON boolean.")
+    try:
+        valid_id = isinstance(skill_id, str) and str(uuid.UUID(skill_id)) == skill_id
+    except ValueError:
+        valid_id = False
+    if not valid_id:
+        raise BridgeError(400, "A valid Skill ID is required.")
+    with SKILLS_LOCK, _skills_write_lock():
+        payload = read_skills()
+        skill = next((item for item in payload["skills"] if item["id"] == skill_id), None)
+        if skill is None:
+            raise BridgeError(404, "Skill not found.")
+        skill["pinned"] = pinned
+        skill["updatedAt"] = datetime.now(timezone.utc).isoformat()
+        _write_skills(payload)
+        return skill
+
+
+def run_skill_check(skill_id: Any, ollama_url: str = DEFAULT_OLLAMA_URL) -> dict[str, Any]:
+    if not isinstance(skill_id, str) or skill_id not in RUNNABLE_SKILL_IDS:
+        raise BridgeError(403, "This skill has no approved read-only operation.")
+    payload = read_skills()
+    skill = next((item for item in payload["skills"] if item["id"] == skill_id), None)
+    if skill is None:
+        raise BridgeError(404, "Skill not found.")
+    if not skill["builtIn"] or skill["runnerId"] != skill_id:
+        raise BridgeError(403, "This skill has no approved read-only operation.")
+    if skill["status"] != "enabled":
+        raise BridgeError(403, "Enable this built-in skill before running its read-only check.")
+
+    if skill_id == BUILTIN_SKILL_DEFINITIONS[11][0]:
+        result = _developer_tool_versions()
+    elif skill_id == BUILTIN_SKILL_DEFINITIONS[12][0]:
+        result = call_ollama(ollama_url, "/api/tags", None, 10)
+    else:
+        script = READ_ONLY_SKILL_SCRIPTS.get(skill_id)
+        if script is None:
+            raise BridgeError(403, "This skill has no approved read-only operation.")
+        result = run_powershell_json(script, timeout=20)
+    return {
+        "skillId": skill_id,
+        "checkedAt": datetime.now(timezone.utc).isoformat(),
+        "result": result,
+    }
+
+
+def _skill_fields(value: Any, updating: bool) -> dict[str, str]:
+    if not isinstance(value, dict):
+        raise BridgeError(400, "Skill data must be an object.")
+    allowed = {"name", "category", "description", "instructions", "status"}
+    if updating:
+        allowed.add("id")
+    assert_allowed_properties(value, allowed)
+    for field in ("name", "category", "instructions", "status"):
+        if not isinstance(value.get(field), str) or not value[field].strip():
+            raise BridgeError(400, f"Skill {field} is required.")
+    description = value.get("description", "")
+    if not isinstance(description, str):
+        raise BridgeError(400, "Skill description must be text.")
+    fields = {
+        "name": value["name"].strip(),
+        "category": value["category"].strip(),
+        "description": description.strip(),
+        "instructions": value["instructions"].strip(),
+        "status": value["status"].strip(),
+    }
+    limits = {"name": 120, "category": 80, "description": 2000, "instructions": 20000}
+    for field, maximum in limits.items():
+        if len(fields[field]) > maximum:
+            raise BridgeError(400, f"Skill {field} exceeds the {maximum}-character limit.")
+    if fields["status"] not in {"draft", "enabled", "disabled"}:
+        raise BridgeError(400, "Skill status must be draft, enabled, or disabled.")
+    if updating:
+        skill_id = value.get("id")
+        try:
+            valid_id = isinstance(skill_id, str) and str(uuid.UUID(skill_id)) == skill_id
+        except ValueError:
+            valid_id = False
+        if not valid_id:
+            raise BridgeError(400, "A valid Skill ID is required.")
+        fields["id"] = skill_id
+    return fields
+
+
+def save_skill(value: Any) -> dict[str, Any]:
+    fields = _skill_fields(value, updating=isinstance(value, dict) and "id" in value)
+    with SKILLS_LOCK, _skills_write_lock():
+        payload = read_skills()
+        now = datetime.now(timezone.utc).isoformat()
+        if "id" not in fields:
+            if len(payload["skills"]) >= MAX_SKILLS:
+                raise BridgeError(409, "The Skills limit has been reached.")
+            record = {
+                **fields,
+                "id": str(uuid.uuid4()),
+                "builtIn": False,
+                "pinned": False,
+                "runnerId": None,
+                "createdAt": now,
+                "updatedAt": now,
+                "version": 1,
+            }
+            payload["skills"].append(record)
+        else:
+            record = next((item for item in payload["skills"] if item["id"] == fields["id"]), None)
+            if record is None:
+                raise BridgeError(404, "Skill not found.")
+            record.update({key: val for key, val in fields.items() if key != "id"})
+            record["updatedAt"] = now
+            record["version"] += 1
+        _write_skills(payload)
+        return record
+
+
+def delete_skill(skill_id: Any) -> dict[str, bool]:
+    try:
+        valid_id = isinstance(skill_id, str) and str(uuid.UUID(skill_id)) == skill_id
+    except ValueError:
+        valid_id = False
+    if not valid_id:
+        raise BridgeError(400, "A valid Skill ID is required.")
+    with SKILLS_LOCK, _skills_write_lock():
+        payload = read_skills()
+        remaining = [skill for skill in payload["skills"] if skill["id"] != skill_id]
+        if len(remaining) == len(payload["skills"]):
+            raise BridgeError(404, "Skill not found.")
+        payload["skills"] = remaining
+        _write_skills(payload)
+    return {"ok": True}
+
+
 def call_ollama(base_url: str, path: str, body: dict[str, Any] | None, timeout: int) -> Any:
     payload = None if body is None else json.dumps(body, ensure_ascii=False).encode("utf-8")
     request = urllib.request.Request(
@@ -616,6 +1127,8 @@ class BridgeRequestHandler(BaseHTTPRequestHandler):
             return list(ACTION_REGISTRY.values())
         if path == "/api/projects":
             return get_projects()
+        if path == "/api/skills":
+            return read_skills()
         if path == "/api/stats":
             return run_powershell_json(
                 "$os = Get-CimInstance Win32_OperatingSystem; "
@@ -676,6 +1189,37 @@ class BridgeRequestHandler(BaseHTTPRequestHandler):
             return {"token": self.server.token}
 
         self._authorize()
+
+        if path == "/api/skills":
+            assert_allowed_properties(body, {"action", "skill", "id", "pinned"})
+            action = body.get("action")
+            if action == "create":
+                skill = body.get("skill")
+                if set(body) != {"action", "skill"}:
+                    raise BridgeError(400, "Skill creation requires only an action and skill object.")
+                if not isinstance(skill, dict):
+                    raise BridgeError(400, "Skill data must be an object.")
+                if "id" in skill:
+                    raise BridgeError(400, "New Skills cannot specify an ID.")
+                return {"skill": save_skill(skill)}
+            if action == "update":
+                skill = body.get("skill")
+                if set(body) != {"action", "skill"} or not isinstance(skill, dict) or "id" not in skill:
+                    raise BridgeError(400, "Skill updates require an action and an identified skill object.")
+                return {"skill": save_skill(skill)}
+            if action == "delete":
+                if set(body) != {"action", "id"}:
+                    raise BridgeError(400, "Skill deletion requires only an action and skill ID.")
+                return delete_skill(body.get("id"))
+            if action == "pin":
+                if set(body) != {"action", "id", "pinned"}:
+                    raise BridgeError(400, "Skill pinning requires an action, skill ID, and pinned state.")
+                return {"skill": set_skill_pinned(body.get("id"), body.get("pinned"))}
+            if action == "run":
+                if set(body) != {"action", "id"}:
+                    raise BridgeError(400, "Running a skill requires only an action and skill ID.")
+                return run_skill_check(body.get("id"), self.server.ollama_url)
+            raise BridgeError(400, "A supported Skill action is required.")
 
         if path == "/api/process/stop":
             assert_allowed_properties(body, {"id", "approved"})
