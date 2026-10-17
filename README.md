@@ -24,7 +24,8 @@ The bridge checks a short list of localhost ports starting at 8787 and selects t
 - Choose a dashboard accent in **Settings**, or switch between dark and light themes from the header. These non-secret preferences are saved in this browser.
 - Overview displays responsive CPU/memory metrics and history, processor core/thread/maximum-clock details, disk capacity, and section-linked suggestions. CPU/memory history is a short, in-memory view sampled every five seconds while Overview is open; it is not persisted or a long-term capacity report.
 - Process-list CPU values are cumulative processor time in seconds, not utilization percentages.
-- Local AI now distinguishes an unavailable Ollama service from an available service with no installed models. Skills remain informational, read-only guidance and are not executable.
+- Local AI distinguishes an unavailable Ollama service from an available service with no installed models. The Skills page provides 13 fixed, read-only diagnostic checks and locally saved declarative custom guidance. Built-in checks use backend allowlists; editing their text does not alter the operation. Custom guidance is never executed, and no skill is automatically added to AI prompts or granted permissions.
+- Saved Skills use schema version 2 in `%APPDATA%\Helpyard\skills.json` (or `~\.helpyard\skills.json` when `APPDATA` is unavailable). The authenticated `GET /api/skills` route reads the catalog; `POST /api/skills` accepts `create`, `update`, `delete`, `pin`, and built-in-only `run` actions. Catalog mutations create timestamped `.bak-*` copies before atomic replacement; invalid, oversized, or unsupported data is reported and preserved. The JSON file is plaintext under the current user's profile; do not store secrets in skill descriptions or instructions.
 - No Python pip packages or third-party frontend assets are required. The dashboard uses native HTML, CSS, JavaScript, and canvas, keeping startup offline-capable and avoiding unreviewed downloads.
 - The [`resources`](./resources/) folder contains the [implementation strategy](./resources/Helpyard-Implementation-Strategy.md), its [PDF version](./resources/Helpyard-Implementation-Strategy.pdf), and resource/dependency notes. No third-party package or asset was downloaded for the redesign.
 
@@ -41,7 +42,7 @@ The bridge checks a short list of localhost ports starting at 8787 and selects t
 
 - The Python bridge binds only to `127.0.0.1`; do not expose it to a LAN or the public internet.
 - The one-time bootstrap code expires after 60 seconds and can be redeemed once from the exact local browser origin. The resulting bearer token remains in JavaScript memory only.
-- Arbitrary PowerShell execution through `/api/run` and MCP process startup remain disabled. Terminal and skill screens are intentionally non-executable.
+- Arbitrary PowerShell execution through `/api/run` and MCP process startup remain disabled. Terminal commands and custom Skills are non-executable; the built-in Skills Run buttons invoke only fixed read-only checks.
 - Process, service, Claude configuration, and high-impact action requests require explicit API approval. A browser confirmation is not a substitute for least privilege.
 - Windows operations use fixed PowerShell scripts launched as subprocesses. Browser input is validated and is not passed as an arbitrary script.
 - Project discovery is limited to this project folder and immediate Git repositories.
@@ -60,7 +61,7 @@ node .\tests\dashboard-check.js
 
 The dashboard check also verifies that every navigation section has a contextual tip and that customization does not change the secret-storage safeguards.
 
-The Python unit tests cover dashboard serving, bootstrap expiry/replay protections, authentication, route behavior, approval gates, malformed/oversized input, and keeping ping responsive during a simulated slow Ollama chat. They stub Windows-specific and Ollama calls where appropriate; they do not mutate processes, services, configuration, or power state.
+The Python unit tests cover dashboard serving, bootstrap expiry/replay protections, authentication, route behavior, approval gates, malformed/oversized input, Skills schema persistence and corruption handling, and keeping ping responsive during a simulated slow Ollama chat. They stub Windows-specific and Ollama calls where appropriate; they do not mutate processes, services, configuration, or power state.
 
 The legacy PowerShell bridge has a separate smoke suite:
 
