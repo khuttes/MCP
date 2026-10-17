@@ -13,7 +13,8 @@ Make the full dashboard clearer, more professional, configurable, and easier to 
 - A Python 3.10+ bridge using only the standard library and listening on IPv4 loopback.
 - Existing theme support, live CPU/memory charts, disk capacity, local Ollama integration, and confirmation gates for system mutations.
 - No pip packages, frontend build step, or third-party UI assets are required.
-- Arbitrary shell execution and MCP server startup are intentionally disabled. Skills are informational examples, not executable downloads.
+- Arbitrary shell execution and MCP server startup are intentionally disabled. The Skills page provides fixed, allowlisted read-only diagnostics; custom user-defined guidance is not executable.
+- The Skills Manager supports 13 built-in diagnostics, local create/edit/delete/search, and pinning. Built-in labels and instructions are editable, but operation behavior remains fixed in the bridge. Custom guidance is not executed or automatically added to AI prompts. Catalog schema version 2 uses atomic replacement and timestamped backups; import/export and version rollback remain future work.
 
 ## Step-by-step implementation roadmap
 
@@ -40,7 +41,7 @@ Make the full dashboard clearer, more professional, configurable, and easier to 
 
 1. Save theme/accent/tip visibility in browser preferences; never persist bridge tokens or provider API keys.
 2. Continue improving Workbench, Local AI, Skills, and MCP status UX only against capabilities implemented by the bridge.
-3. Keep skills and MCP entries informational until a reviewed registry, provenance, version/hash verification, and explicit approval workflow exist.
+3. Keep custom skills declarative-only; built-in diagnostics may run only through fixed backend allowlists. Keep MCP entries informational until a reviewed registry, provenance, version/hash verification, and explicit approval workflow exist.
 4. Do not add a generic download-and-execute path.
 
 ### Phase 5 — Validation and release readiness (ongoing)
