@@ -137,6 +137,14 @@ class BridgeHTTPTests(unittest.TestCase):
         self.assertIn("NumberOfLogicalProcessors", script)
         self.assertIn("MaxClockSpeed", script)
 
+    def test_loopback_url_validation_accepts_ipv6_literals(self) -> None:
+        self.assertEqual(bridge.normalize_loopback_url("http://[::1]:11434"), "http://[::1]:11434")
+        self.assertEqual(bridge.normalize_loopback_url("http://[::ffff:127.0.0.1]:1234"), "http://[::ffff:127.0.0.1]:1234")
+        self.assertTrue(bridge.validate_local_address("[::1]"))
+        self.assertFalse(bridge.validate_local_address("example.com"))
+        with self.assertRaises(ValueError):
+            bridge.normalize_loopback_url("http://example.com")
+
     def test_skills_are_authenticated_validated_and_persisted_with_backup(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             skills_path = Path(temporary_directory) / "skills.json"
