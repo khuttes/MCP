@@ -18,6 +18,16 @@ The dashboard is served at `http://127.0.0.1:<selected-port>/pc-control-dashboar
 
 The bridge checks a short list of localhost ports starting at 8787 and selects the first available port. It runs one instance per project folder. The dashboard discovers and uses the actual selected port.
 
+## Dashboard appearance and resources
+
+- Overview and all dashboard sections provide contextual safety tips. Disable them in **Settings** if preferred.
+- Choose a dashboard accent in **Settings**, or switch between dark and light themes from the header. These non-secret preferences are saved in this browser.
+- Overview displays responsive CPU/memory metrics and history, processor core/thread/maximum-clock details, disk capacity, and section-linked suggestions. CPU/memory history is a short, in-memory view sampled every five seconds while Overview is open; it is not persisted or a long-term capacity report.
+- Process-list CPU values are cumulative processor time in seconds, not utilization percentages.
+- Local AI now distinguishes an unavailable Ollama service from an available service with no installed models. Skills remain informational, read-only guidance and are not executable.
+- No Python pip packages or third-party frontend assets are required. The dashboard uses native HTML, CSS, JavaScript, and canvas, keeping startup offline-capable and avoiding unreviewed downloads.
+- The [`resources`](./resources/) folder contains the [implementation strategy](./resources/Helpyard-Implementation-Strategy.md), its [PDF version](./resources/Helpyard-Implementation-Strategy.pdf), and resource/dependency notes. No third-party package or asset was downloaded for the redesign.
+
 ## Troubleshooting
 
 - If the launcher says Python 3.10 or newer is missing, install Python for Windows and ensure either `py -3` or `python` works in a new terminal.
@@ -47,6 +57,8 @@ Run from the project folder:
 py -3 -m unittest discover -s tests -p test_bridge.py -v
 node .\tests\dashboard-check.js
 ```
+
+The dashboard check also verifies that every navigation section has a contextual tip and that customization does not change the secret-storage safeguards.
 
 The Python unit tests cover dashboard serving, bootstrap expiry/replay protections, authentication, route behavior, approval gates, malformed/oversized input, and keeping ping responsive during a simulated slow Ollama chat. They stub Windows-specific and Ollama calls where appropriate; they do not mutate processes, services, configuration, or power state.
 
