@@ -5,18 +5,11 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Helpyard: Open Dashboard",
+            "name": "Helpyard: Open Dashboard File",
             "type": "msedge",
             "request": "launch",
             "file": "${workspaceFolder}\\pc-control-dashboard.html",
             "webRoot": "${workspaceFolder}"
-        },
-        {
-            "name": "Helpyard: Start Local Bridge",
-            "type": "PowerShell",
-            "request": "launch",
-            "script": "${workspaceFolder}\\bridge.ps1",
-            "args": []
         },
         {
             "name": "PowerShell: Launch Current File",
@@ -24,16 +17,6 @@
             "request": "launch",
             "script": "${file}",
             "args": []
-        }
-    ],
-    "compounds": [
-        {
-            "name": "Helpyard: Full Local Development",
-            "configurations": [
-                "Helpyard: Start Local Bridge",
-                "Helpyard: Open Dashboard"
-            ],
-            "stopAll": true
         }
     ]
 }
