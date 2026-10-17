@@ -1,10 +1,12 @@
 import json
 import threading
+import tempfile
 import time
 import unittest
 import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 from unittest.mock import patch
 
 import bridge
@@ -134,6 +136,281 @@ class BridgeHTTPTests(unittest.TestCase):
         self.assertIn("NumberOfCores", script)
         self.assertIn("NumberOfLogicalProcessors", script)
         self.assertIn("MaxClockSpeed", script)
+
+    def test_skills_are_authenticated_validated_and_persisted_with_backup(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            skills_path = Path(temporary_directory) / "skills.json"
+            with patch("bridge.skills_file_path", return_value=skills_path):
+                self.assertEqual(self.json_request("/api/skills")[0], 401)
+                initial_status, initial_catalog = self.json_request("/api/skills", token=self.token)
+                self.assertEqual(initial_status, 200)
+                self.assertEqual(initial_catalog["schemaVersion"], 2)
+                self.assertEqual(len(initial_catalog["skills"]), len(bridge.BUILTIN_SKILL_DEFINITIONS))
+                self.assertTrue(all(skill["builtIn"] and skill["runnerId"] == skill["id"] for skill in initial_catalog["skills"]))
+                first_builtin_id = initial_catalog["skills"][0]["id"]
+                pin_status, pin_payload = self.json_request(
+                    "/api/skills",
+                    "POST",
+                    {"action": "pin", "id": first_builtin_id, "pinned": True},
+                    token=self.token,
+                )
+                self.assertEqual(pin_status, 200)
+                self.assertTrue(pin_payload["skill"]["pinned"])
+                invalid, _ = self.json_request(
+                    "/api/skills",
+                    "POST",
+                    {"action": "create", "skill": {"name": "Incomplete"}},
+                    token=self.token,
+                )
+                self.assertEqual(invalid, 400)
+                unsafe, _ = self.json_request(
+                    "/api/skills",
+                    "POST",
+                    {
+                        "action": "create",
+                        "skill": {
+                            "name": "Injected operation",
+                            "category": "Test",
+                            "instructions": "Do not run user-provided commands.",
+                            "status": "enabled",
+                            "command": "arbitrary command",
+                        },
+                    },
+                    token=self.token,
+                )
+                self.assertEqual(unsafe, 400)
+                created_status, created_payload = self.json_request(
+                    "/api/skills",
+                    "POST",
+                    {
+                        "action": "create",
+                        "skill": {
+                            "name": "Safe review",
+                            "category": "Development",
+                            "description": "A declarative checklist.",
+                            "instructions": "Inspect evidence; do not execute commands.",
+                            "status": "draft",
+                        },
+                    },
+                    token=self.token,
+                )
+                self.assertEqual(created_status, 200)
+                created = created_payload["skill"]
+                self.assertEqual(created["version"], 1)
+                self.assertEqual(created["status"], "draft")
+                self.assertEqual(len(self.json_request("/api/skills", token=self.token)[1]["skills"]), len(initial_catalog["skills"]) + 1)
+                original_content = skills_path.read_text(encoding="utf-8")
+                update_status, update_payload = self.json_request(
+                    "/api/skills",
+                    "POST",
+                    {
+                        "action": "update",
+                        "skill": {
+                            "id": created["id"],
+                            "name": "Safe review updated",
+                            "category": "Development",
+                            "description": "A declarative checklist.",
+                            "instructions": "Inspect evidence; do not execute commands.",
+                            "status": "enabled",
+                        },
+                    },
+                    token=self.token,
+                )
+                self.assertEqual(update_status, 200)
+                self.assertEqual(update_payload["skill"]["version"], 2)
+                backups = list(Path(temporary_directory).glob("skills.json.bak-*"))
+                self.assertTrue(backups)
+                latest_backup = max(backups, key=lambda path: path.name)
+                self.assertEqual(latest_backup.read_text(encoding="utf-8"), original_content)
+                self.assertEqual(
+                    self.json_request(
+                        "/api/skills",
+                        "POST",
+                        {"action": "delete", "id": created["id"]},
+                        token=self.token,
+                    )[0],
+                    200,
+                )
+                final_status, final_catalog = self.json_request("/api/skills", token=self.token)
+                self.assertEqual(final_status, 200)
+                self.assertEqual(final_catalog["schemaVersion"], 2)
+                self.assertEqual(len(final_catalog["skills"]), len(initial_catalog["skills"]))
+                self.assertFalse(any(skill["id"] == created["id"] for skill in final_catalog["skills"]))
+
+    def test_builtin_skill_run_is_fixed_authenticated_and_read_only(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            skills_path = Path(temporary_directory) / "skills.json"
+            ip_skill_id = bridge.BUILTIN_SKILL_DEFINITIONS[0][0]
+            self.assertEqual(
+                set(bridge.READ_ONLY_SKILL_SCRIPTS),
+                {definition[0] for definition in bridge.BUILTIN_SKILL_DEFINITIONS[:11]},
+            )
+            with patch("bridge.skills_file_path", return_value=skills_path):
+                self.assertEqual(
+                    self.json_request(
+                        "/api/skills",
+                        "POST",
+                        {"action": "run", "id": ip_skill_id},
+                    )[0],
+                    401,
+                )
+                edited_status, edited_payload = self.json_request(
+                    "/api/skills",
+                    "POST",
+                    {
+                        "action": "update",
+                        "skill": {
+                            "id": ip_skill_id,
+                            "name": "Renamed network check",
+                            "category": "Network",
+                            "description": "A user-edited label.",
+                            "instructions": "This text cannot change the fixed check.",
+                            "status": "enabled",
+                        },
+                    },
+                    token=self.token,
+                )
+                self.assertEqual(edited_status, 200)
+                self.assertEqual(edited_payload["skill"]["runnerId"], ip_skill_id)
+                with patch("bridge.run_powershell_json", return_value=[{"IPAddress": "192.0.2.1"}]) as query:
+                    status, payload = self.json_request(
+                        "/api/skills",
+                        "POST",
+                        {"action": "run", "id": ip_skill_id},
+                        token=self.token,
+                    )
+                self.assertEqual(status, 200)
+                self.assertEqual(payload["result"], [{"IPAddress": "192.0.2.1"}])
+                self.assertIn("Get-NetIPAddress", query.call_args.args[0])
+                self.assertNotIn("192.0.2.1", query.call_args.args[0])
+                for skill_id in (definition[0] for definition in bridge.BUILTIN_SKILL_DEFINITIONS[1:11]):
+                    with patch("bridge.run_powershell_json", return_value=[]):
+                        check_status, _ = self.json_request(
+                            "/api/skills",
+                            "POST",
+                            {"action": "run", "id": skill_id},
+                            token=self.token,
+                        )
+                    self.assertEqual(check_status, 200)
+                with patch("bridge._developer_tool_versions", return_value={"Python": {"available": True, "version": "test"}}):
+                    self.assertEqual(
+                        self.json_request(
+                            "/api/skills",
+                            "POST",
+                            {"action": "run", "id": bridge.BUILTIN_SKILL_DEFINITIONS[11][0]},
+                            token=self.token,
+                        )[0],
+                        200,
+                    )
+                with patch("bridge.call_ollama", return_value={"models": []}) as ollama:
+                    self.assertEqual(
+                        self.json_request(
+                            "/api/skills",
+                            "POST",
+                            {"action": "run", "id": bridge.BUILTIN_SKILL_DEFINITIONS[12][0]},
+                            token=self.token,
+                        )[0],
+                        200,
+                    )
+                    self.assertEqual(ollama.call_args.args[1], "/api/tags")
+                custom_status, custom_payload = self.json_request(
+                    "/api/skills",
+                    "POST",
+                    {
+                        "action": "create",
+                        "skill": {
+                            "name": "Custom guidance",
+                            "category": "Test",
+                            "instructions": "Never executed.",
+                            "status": "enabled",
+                        },
+                    },
+                    token=self.token,
+                )
+                self.assertEqual(custom_status, 200)
+                blocked, _ = self.json_request(
+                    "/api/skills",
+                    "POST",
+                    {"action": "run", "id": custom_payload["skill"]["id"]},
+                    token=self.token,
+                )
+                self.assertEqual(blocked, 403)
+                self.assertEqual(len(self.json_request("/api/skills", token=self.token)[1]["skills"]), 14)
+                self.assertEqual(
+                    self.json_request(
+                        "/api/skills",
+                        "POST",
+                        {"action": "delete", "id": ip_skill_id},
+                        token=self.token,
+                    )[0],
+                    200,
+                )
+                self.assertEqual(
+                    self.json_request(
+                        "/api/skills",
+                        "POST",
+                        {"action": "run", "id": ip_skill_id},
+                        token=self.token,
+                    )[0],
+                    404,
+                )
+
+    def test_corrupt_skills_file_is_preserved_and_write_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            skills_path = Path(temporary_directory) / "skills.json"
+            corrupt_content = '{"schemaVersion": 1, "skills": ['
+            skills_path.write_text(corrupt_content, encoding="utf-8")
+            with patch("bridge.skills_file_path", return_value=skills_path):
+                status, payload = self.json_request("/api/skills", token=self.token)
+                self.assertEqual(status, 500)
+                self.assertIn("original file was preserved", payload["error"])
+                write_status, _ = self.json_request(
+                    "/api/skills",
+                    "POST",
+                    {
+                        "action": "create",
+                        "skill": {
+                            "name": "Must not replace corrupt data",
+                            "category": "Test",
+                            "instructions": "Remain declarative.",
+                            "status": "draft",
+                        },
+                    },
+                    token=self.token,
+                )
+                self.assertEqual(write_status, 500)
+            self.assertEqual(skills_path.read_text(encoding="utf-8"), corrupt_content)
+
+    def test_skills_schema_v1_migrates_with_backup(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            skills_path = Path(temporary_directory) / "skills.json"
+            legacy = {
+                "schemaVersion": 1,
+                "skills": [{
+                    "id": "12345678-1234-4234-8234-123456789abc",
+                    "name": "Existing custom skill",
+                    "category": "Legacy",
+                    "description": "Keep this record through migration.",
+                    "instructions": "Declarative only.",
+                    "status": "draft",
+                    "createdAt": "2026-10-17T00:00:00+00:00",
+                    "updatedAt": "2026-10-17T00:00:00+00:00",
+                    "version": 3,
+                }],
+            }
+            legacy_content = json.dumps(legacy)
+            skills_path.write_text(legacy_content, encoding="utf-8")
+            with patch("bridge.skills_file_path", return_value=skills_path):
+                status, catalog = self.json_request("/api/skills", token=self.token)
+            self.assertEqual(status, 200)
+            self.assertEqual(catalog["schemaVersion"], 2)
+            migrated = next(skill for skill in catalog["skills"] if skill["id"] == legacy["skills"][0]["id"])
+            self.assertEqual(migrated["version"], 3)
+            self.assertFalse(migrated["builtIn"])
+            self.assertIsNone(migrated["runnerId"])
+            backups = list(Path(temporary_directory).glob("skills.json.bak-*"))
+            self.assertTrue(backups)
+            self.assertEqual(backups[0].read_text(encoding="utf-8"), legacy_content)
 
     def test_mutations_require_approval_and_unsafe_routes_remain_disabled(self) -> None:
         cases = [
