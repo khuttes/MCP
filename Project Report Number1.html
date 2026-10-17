@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Helpyard | Project Report No. 1</title>
+  <style>
+    @page { size: A4; margin: 13mm 14mm 15mm; }
+    :root { --navy:#0b1b2b; --cyan:#0b8eaf; --cyan2:#46c7e8; --violet:#7667d9; --ink:#17283b; --muted:#536b82; --line:#cbd8e2; --pale:#edf5f8; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); font:9.4pt/1.48 "Segoe UI", Arial, sans-serif; }
+    h1,h2,h3,h4 { color:var(--navy); line-height:1.2; page-break-after:avoid; }
+    h1 { font-size:31pt; margin:0 0 11pt; letter-spacing:-.6pt; }
+    h2 { margin:19pt 0 8pt; padding:0 0 5pt; font-size:17pt; border-bottom:2px solid var(--cyan2); }
+    h3 { font-size:12pt; margin:13pt 0 5pt; }
+    h4 { font-size:10pt; margin:0 0 4pt; }
+    p { margin:5pt 0 8pt; }
+    ul,ol { margin:5pt 0 9pt; padding-left:19pt; }
+    li { margin:2.5pt 0; }
+    code { font:8.4pt Consolas,"Courier New",monospace; color:#074d65; overflow-wrap:anywhere; }
+    .cover { min-height:258mm; padding:23mm 8mm 12mm; color:#eaf7ff; background:linear-gradient(145deg,#091827 0%,#153550 62%,#28356c 100%); page-break-after:always; display:flex; flex-direction:column; justify-content:space-between; }
+    .cover h1 { color:white; }
+    .eyebrow { color:#63d7ed; font-size:10pt; font-weight:700; letter-spacing:2.1px; text-transform:uppercase; }
+    .cover-sub { max-width:145mm; color:#ccdfed; font-size:15pt; line-height:1.5; }
+    .cover-meta { color:#d5e6f1; font-size:10pt; }
+    .cover-mark { width:21mm; height:21mm; border:1px solid #6de0f2; border-radius:7mm; display:grid; place-items:center; color:#071827; background:linear-gradient(140deg,#55d7ef,#8e8afa); font-size:23pt; font-weight:800; }
+    .cover-foot { padding-top:5mm; border-top:1px solid #ffffff44; color:#bad1e1; font-size:8.5pt; }
+    .lead { color:#425b72; font-size:12pt; line-height:1.5; }
+    .callout { padding:9pt 11pt; margin:9pt 0 12pt; border-left:4px solid var(--cyan); background:#edf7fa; }
+    .warning { border-color:#e0a13b; background:#fff6e6; }
+    .danger { border-color:#ca5660; background:#fff0f1; }
+    .good { border-color:#269679; background:#edf8f3; }
+    .small { color:var(--muted); font-size:8pt; }
+    .tag { display:inline-block; padding:2pt 6pt; border:1px solid #bdd0dd; border-radius:99px; background:#f5f9fb; color:#284660; font-size:8pt; font-weight:700; }
+    .tag.green { background:#eaf7f1; color:#126348; border-color:#b6ddcc; }
+    .tag.amber { background:#fff4df; color:#87500b; border-color:#ecd09b; }
+    .tag.red { background:#fff0f1; color:#9b2938; border-color:#e5b9bf; }
+    .grid2,.grid3 { display:grid; gap:9pt; margin:8pt 0 12pt; }
+    .grid2 { grid-template-columns:1fr 1fr; }
+    .grid3 { grid-template-columns:repeat(3,1fr); }
+    .card { padding:9pt 10pt; border:1px solid var(--line); border-radius:8pt; background:#fff; break-inside:avoid; }
+    .card.tint { background:var(--pale); }
+    .metric { font-size:22pt; font-weight:800; color:var(--cyan); line-height:1.05; }
+    .metric-label { margin-top:4pt; color:var(--muted); font-size:8.4pt; }
+    table { width:100%; margin:7pt 0 11pt; border-collapse:collapse; font-size:8.4pt; }
+    thead { display:table-header-group; }
+    tr { break-inside:avoid; }
+    th,td { padding:5pt 6pt; border:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { color:#173650; background:#e8f2f6; }
+    .diagram { margin:9pt 0 12pt; padding:8pt; border:1px solid var(--line); border-radius:8pt; background:#f7fafc; break-inside:avoid; }
+    .diagram svg { display:block; width:100%; height:auto; }
+    .caption { margin:4pt 2pt 0; color:var(--muted); font-size:8pt; }
+    .flow { display:flex; align-items:stretch; gap:5pt; margin:7pt 0 10pt; }
+    .flow .step { flex:1; padding:7pt 6pt; border-radius:6pt; border:1px solid #bfd3df; background:#f1f8fb; text-align:center; font-size:8pt; }
+    .flow .arrow { align-self:center; color:var(--cyan); font-size:13pt; font-weight:700; }
+    .toc { columns:2; column-gap:16mm; }
+    .toc li { margin:4pt 0; break-inside:avoid; }
+    .chapter { page-break-before:auto; }
+    .footer { margin-top:12pt; padding-top:5pt; border-top:1px solid var(--line); color:#677c90; font-size:7.6pt; }
+    .mono { font:8pt Consolas,"Courier New",monospace; }
+    @media screen { body { max-width:210mm; margin:15px auto; padding:0 10mm; } .cover { margin:0 -10mm; padding-left:18mm; padding-right:18mm; } }
+  </style>
+</head>
+<body>
+  <section class="cover">
+    <div class="eyebrow">Local-first developer workspace · Engineering report</div>
+    <div class="cover-inner">
+      <div class="cover-mark">H</div>
+      <p style="margin-top:18mm;color:#74dcee;font-weight:700;letter-spacing:1.5px;">PROJECT REPORT · NUMBER 1</p>
+      <h1>Helpyard<br>Local PC Control Dashboard</h1>
+      <p class="cover-sub">Project overview, system architecture, interface guide, implemented capabilities, verification evidence, risk assessment, and a staged path to a safe release.</p>
+    </div>
+    <div>
+      <p class="cover-meta"><strong>Prepared:</strong> 17 October 2026<br><strong>Reviewed baseline:</strong> local HTML dashboard + Windows PowerShell bridge<br><strong>Report status:</strong> verified prototype assessment; public release not yet approved</p>
+      <p class="cover-foot">Prepared from the project files and local checks available in this workspace. Capabilities are labelled as implemented, partially implemented, or planned; untested environments are not presented as verified.</p>
+    </div>
+  </section>
+
+  <h2>Executive summary</h2>
+  <p class="lead">Helpyard is a local workstation dashboard built as a single HTML page paired with a Windows PowerShell HTTP bridge. Its purpose is to bring system monitoring, project discovery, process/service controls, a command runner, local Ollama chat, and configuration into one browser interface.</p>
+  <div class="grid3">
+    <div class="card tint"><div class="metric">1</div><div class="metric-label">Single-page frontend, no frontend build step</div></div>
+    <div class="card tint"><div class="metric">12</div><div class="metric-label">Navigation sections currently shown</div></div>
+    <div class="card tint"><div class="metric">20+</div><div class="metric-label">Local HTTP route patterns in the bridge</div></div>
+  </div>
+  <div class="callout good"><strong>What is working in the verified environment:</strong> bridge authentication and system data routes; dashboard navigation and operational panels; project, process, and service lists; a read-only PowerShell command; Ollama model discovery; and an end-to-end local chat response. The previously discovered parser and Ollama response-shape defects were fixed and rechecked.</div>
+  <div class="callout warning"><strong>Release decision:</strong> suitable for controlled local evaluation, not public internet exposure. The bridge can execute commands and control Windows. Firefox was unavailable in the environment; full browser coverage, complete threat-model hardening, and a mock-backed public demo remain outstanding.</div>
+  <h3>At a glance</h3>
+  <table>
+    <thead><tr><th>Dimension</th><th>Current assessment</th><th>Evidence / interpretation</th></tr></thead>
+    <tbody>
+      <tr><td>Architecture</td><td><span class="tag green">Implemented</span></td><td>One HTML/CSS/JS UI and a localhost-bound PowerShell bridge; Ollama is optional.</td></tr>
+      <tr><td>Core local use</td><td><span class="tag green">Verified in one environment</span></td><td>Windows 11, Windows PowerShell 5.1 and integrated Chromium-based VS Code browser.</td></tr>
+      <tr><td>AI</td><td><span class="tag green">Local chat verified</span></td><td>Ollama model list and non-streaming chat response tested end to end.</td></tr>
+      <tr><td>Project intelligence</td><td><span class="tag amber">Basic discovery</span></td><td>Lists candidate folders and immediate Git repositories; not a repository analyzer/indexer.</td></tr>
+      <tr><td>Security posture</td><td><span class="tag amber">Local boundary present; hardening needed</span></td><td>Loopback binding, token and origin checks exist; arbitrary PowerShell execution is high impact.</td></tr>
+      <tr><td>Public readiness</td><td><span class="tag red">Not ready</span></td><td>Do not publish a build connected to the workstation bridge.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Contents</h2>
+  <ol class="toc">
+    <li>Project purpose, scope, and user value</li>
+    <li>Architecture and request/data flow</li>
+    <li>Graphical dashboard walkthrough</li>
+    <li>Feature inventory and implementation status</li>
+    <li>Bridge/API reference and operational behaviour</li>
+    <li>Security, privacy, and trust boundaries</li>
+    <li>Verification performed and evidence</li>
+    <li>Known limitations and prioritized recommendations</li>
+    <li>Upgrade roadmap and acceptance gates</li>
+    <li>Installation, startup, and daily-use guide</li>
+    <li>Appendix: file inventory and glossary</li>
+  </ol>
+
+  <section class="chapter">
+    <h2>1. Project purpose, scope, and user value</h2>
+    <h3>Purpose</h3>
+    <p>Helpyard consolidates common workstation and developer operations in a navigable browser dashboard. The interface is intentionally a regular HTML document; system-level operations are delegated to a separate local PowerShell process because a browser page cannot safely or directly control Windows.</p>
+    <h3>Intended audience and use cases</h3>
+    <ul>
+      <li>A Windows developer who wants a quick view of CPU, memory, uptime, disks, processes, and services.</li>
+      <li>A user who wants to browse a lightweight list of likely project folders and Git repositories.</li>
+      <li>A local-AI user who wants to select an installed Ollama model and chat without sending that chat to a cloud provider.</li>
+      <li>An operator who needs a browser UI for a PowerShell session, a small set of Windows actions, and service controls.</li>
+    </ul>
+    <h3>Design principles visible in the implementation</h3>
+    <div class="grid2">
+      <div class="card"><h4>Local-first</h4><p>Bridge listener binds to <code>127.0.0.1</code>; system APIs are served by the same machine. Ollama defaults to loopback.</p></div>
+      <div class="card"><h4>Single-file UI</h4><p>HTML, styles, and frontend JavaScript are together in <code>pc-control-dashboard.html</code>; no frontend package manager is required.</p></div>
+      <div class="card"><h4>Visible controls</h4><p>Sidebar navigation, connection badge, admin status, confirmation prompts, terminal output, and toast feedback expose operational state.</p></div>
+      <div class="card"><h4>Incremental product direction</h4><p>The upgrade plan prioritizes testability and safety before larger project indexing, editing, 3D visuals, or public hosting.</p></div>
+    </div>
+    <div class="callout"><strong>Scope boundary:</strong> “Helpyard” is currently a workstation dashboard and a foundation for a developer workspace. Several navigation labels imply future integrations, but not all of them are connected to live backends yet. This report differentiates real behavior from display scaffolding.</div>
+  </section>
+
+  <section class="chapter">
+    <h2>2. Architecture and request/data flow</h2>
+    <p>The design has three primary runtime components. The browser owns presentation and user interaction; the PowerShell bridge owns privileged/local operations; optional Ollama handles local inference. An optional cloud chat path calls provider APIs directly from the browser.</p>
+    <div class="diagram">
+      <svg viewBox="0 0 900 390" role="img" aria-label="Helpyard architecture diagram">
+        <defs><linearGradient id="hdr" x1="0" x2="1"><stop stop-color="#0a819f"/><stop offset="1" stop-color="#7165cf"/></linearGradient><marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#1b8eab"/></marker></defs>
+        <rect x="8" y="8" width="884" height="374" rx="16" fill="#0e2031"/>
+        <text x="32" y="43" fill="#eaf8ff" font-size="16" font-family="Segoe UI" font-weight="700">LOCAL WORKSTATION BOUNDARY · 127.0.0.1</text>
+        <rect x="35" y="76" width="236" height="235" rx="13" fill="#18334b" stroke="#46c7e8" stroke-width="2"/>
+        <rect x="35" y="76" width="236" height="42" rx="13" fill="url(#hdr)"/>
+        <text x="56" y="103" fill="white" font-size="16" font-family="Segoe UI" font-weight="700">Browser dashboard</text>
+        <text x="55" y="151" fill="#dbeaf3" font-size="13" font-family="Segoe UI">pc-control-dashboard.html</text>
+        <text x="55" y="180" fill="#b9cede" font-size="12" font-family="Segoe UI">12 UI sections · local state</text>
+        <text x="55" y="204" fill="#b9cede" font-size="12" font-family="Segoe UI">Fetch + Bearer token</text>
+        <text x="55" y="228" fill="#b9cede" font-size="12" font-family="Segoe UI">Optional direct cloud API</text>
+        <text x="55" y="274" fill="#76ddef" font-size="11" font-family="Segoe UI">User-reviewed UI actions</text>
+        <rect x="344" y="76" width="250" height="235" rx="13" fill="#19384c" stroke="#6d83e6" stroke-width="2"/>
+        <rect x="344" y="76" width="250" height="42" rx="13" fill="url(#hdr)"/>
+        <text x="366" y="103" fill="white" font-size="16" font-family="Segoe UI" font-weight="700">PowerShell bridge</text>
+        <text x="364" y="151" fill="#dbeaf3" font-size="13" font-family="Segoe UI">bridge.ps1 · HttpListener</text>
+        <text x="364" y="180" fill="#b9cede" font-size="12" font-family="Segoe UI">127.0.0.1 · random token</text>
+        <text x="364" y="204" fill="#b9cede" font-size="12" font-family="Segoe UI">Host / origin checks</text>
+        <text x="364" y="228" fill="#b9cede" font-size="12" font-family="Segoe UI">Windows / Git / commands</text>
+        <text x="364" y="274" fill="#ffca77" font-size="11" font-family="Segoe UI">Trust boundary / privileged</text>
+        <rect x="667" y="76" width="190" height="101" rx="13" fill="#203756" stroke="#8b7de3" stroke-width="2"/>
+        <text x="690" y="109" fill="white" font-size="15" font-family="Segoe UI" font-weight="700">Windows APIs</text>
+        <text x="690" y="137" fill="#c6d5e2" font-size="12" font-family="Segoe UI">CIM · Services · Process</text>
+        <text x="690" y="158" fill="#c6d5e2" font-size="12" font-family="Segoe UI">Actions · filesystem discovery</text>
+        <rect x="667" y="210" width="190" height="101" rx="13" fill="#203756" stroke="#39be9b" stroke-width="2"/>
+        <text x="690" y="243" fill="white" font-size="15" font-family="Segoe UI" font-weight="700">Ollama (optional)</text>
+        <text x="690" y="271" fill="#c6d5e2" font-size="12" font-family="Segoe UI">127.0.0.1:11434</text>
+        <text x="690" y="292" fill="#c6d5e2" font-size="12" font-family="Segoe UI">Model list + chat API</text>
+        <line x1="272" y1="194" x2="337" y2="194" stroke="#56d2e9" stroke-width="4" marker-end="url(#arr)"/>
+        <text x="278" y="180" fill="#d7eff8" font-size="10" font-family="Segoe UI">HTTP + token</text>
+        <line x1="594" y1="149" x2="659" y2="130" stroke="#56d2e9" stroke-width="4" marker-end="url(#arr)"/>
+        <line x1="594" y1="245" x2="659" y2="258" stroke="#56d2e9" stroke-width="4" marker-end="url(#arr)"/>
+        <text x="298" y="348" fill="#c6d5e2" font-size="12" font-family="Segoe UI">Separate static-file host is optional for reliable browser origin / fetch behavior</text>
+      </svg>
+      <p class="caption">Figure 1. Logical architecture. The browser is not a security boundary for commands; authorization and permissions must be enforced by the bridge.</p>
+    </div>
+    <h3>Typical request lifecycle</h3>
+    <div class="flow">
+      <div class="step"><strong>1 · User</strong><br>selects panel or command</div><div class="arrow">›</div>
+      <div class="step"><strong>2 · Browser</strong><br>sends HTTP + bearer token</div><div class="arrow">›</div>
+      <div class="step"><strong>3 · Bridge</strong><br>checks local host/origin + token</div><div class="arrow">›</div>
+      <div class="step"><strong>4 · Windows / Ollama</strong><br>executes or returns data</div><div class="arrow">›</div>
+      <div class="step"><strong>5 · Dashboard</strong><br>renders result or error</div>
+    </div>
+    <h3>Runtime responsibilities</h3>
+    <table>
+      <thead><tr><th>Component</th><th>Owns</th><th>Does not provide</th></tr></thead>
+      <tbody>
+        <tr><td>Dashboard HTML</td><td>Layout, navigation, rendering, browser state, direct cloud chat requests, HTTP client.</td><td>Unrestricted filesystem or OS capability by itself; durable secure credential storage.</td></tr>
+        <tr><td>PowerShell bridge</td><td>Local APIs, Windows host metrics, action/service/process operations, arbitrary PowerShell route, Ollama proxy, Claude Desktop config access.</td><td>Remote-safe multi-user authorization, sandboxing for arbitrary commands, production audit management.</td></tr>
+        <tr><td>Ollama</td><td>Installed local model listing and inference on the local machine.</td><td>Guaranteed model availability, latency, or quality; model setup is external.</td></tr>
+        <tr><td>Static file server</td><td>Serves the HTML document over loopback when the user chooses.</td><td>API backend or authorization; it should remain bound to loopback for local use.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="chapter">
+    <h2>3. Graphical dashboard walkthrough</h2>
+    <p>The live interface uses a dark navy palette, cyan/violet accent gradients, bordered cards, rounded status badges, a sticky navigation rail on wide screens, and a stacked layout at smaller widths. The following is a report illustration of the page structure and expected information hierarchy; it is a designed diagram, not a captured screenshot.</p>
+    <div class="diagram">
+      <svg viewBox="0 0 900 520" role="img" aria-label="Illustrative Helpyard dashboard interface">
+        <defs><linearGradient id="uihead" x1="0" x2="1"><stop stop-color="#48c7e6"/><stop offset="1" stop-color="#7775ee"/></linearGradient></defs>
+        <rect x="8" y="8" width="884" height="504" rx="18" fill="#081522"/>
+        <rect x="8" y="8" width="184" height="504" rx="18" fill="#09131f" stroke="#26384b"/>
+        <rect x="25" y="26" width="36" height="36" rx="12" fill="url(#uihead)"/>
+        <text x="36" y="51" fill="#071725" font-size="19" font-family="Segoe UI" font-weight="800">H</text>
+        <text x="72" y="43" fill="#f0f6fd" font-size="16" font-family="Segoe UI" font-weight="700">Helpyard</text>
+        <text x="72" y="59" fill="#8da4ba" font-size="9" font-family="Segoe UI">CYBER LAB</text>
+        <text x="28" y="94" fill="#72869a" font-size="9" font-family="Segoe UI" letter-spacing="1">SYSTEM</text>
+        <rect x="20" y="103" width="158" height="27" rx="8" fill="#123246" stroke="#26617a"/>
+        <text x="36" y="122" fill="#e7f7fd" font-size="11" font-family="Segoe UI">▦  Overview</text>
+        <text x="36" y="154" fill="#9aafc2" font-size="11" font-family="Segoe UI">▣  Projects</text>
+        <text x="36" y="181" fill="#9aafc2" font-size="11" font-family="Segoe UI">◉  Workbench</text>
+        <text x="36" y="208" fill="#9aafc2" font-size="11" font-family="Segoe UI">▤  Processes</text>
+        <text x="36" y="235" fill="#9aafc2" font-size="11" font-family="Segoe UI">⚙  Services</text>
+        <text x="36" y="262" fill="#9aafc2" font-size="11" font-family="Segoe UI">⌘  Terminal</text>
+        <text x="28" y="294" fill="#72869a" font-size="9" font-family="Segoe UI" letter-spacing="1">AI / SECURITY</text>
+        <text x="36" y="317" fill="#9aafc2" font-size="11" font-family="Segoe UI">✦  Local AI</text>
+        <text x="36" y="344" fill="#9aafc2" font-size="11" font-family="Segoe UI">☁  Cloud AI</text>
+        <text x="36" y="371" fill="#9aafc2" font-size="11" font-family="Segoe UI">⬡  MCP</text>
+        <text x="36" y="398" fill="#9aafc2" font-size="11" font-family="Segoe UI">◇  Skills</text>
+        <text x="36" y="425" fill="#9aafc2" font-size="11" font-family="Segoe UI">⬟  Security</text>
+        <text x="36" y="452" fill="#9aafc2" font-size="11" font-family="Segoe UI">⚙  Settings</text>
+        <rect x="208" y="22" width="660" height="66" rx="10" fill="#111f2e" stroke="#24364a"/>
+        <text x="232" y="52" fill="#eef5fd" font-size="22" font-family="Segoe UI" font-weight="700">Overview</text>
+        <text x="232" y="72" fill="#91a5ba" font-size="11" font-family="Segoe UI">Local workstation status and AI controls</text>
+        <rect x="719" y="41" width="91" height="27" rx="14" fill="#133c36" stroke="#226b59"/>
+        <circle cx="735" cy="54" r="5" fill="#3ddc97"/>
+        <text x="747" y="58" fill="#d3f4e4" font-size="10" font-family="Segoe UI">Connected</text>
+        <rect x="820" y="39" width="31" height="30" rx="8" fill="#172638" stroke="#34495d"/>
+        <text x="828" y="59" fill="#d4e3ef" font-size="14" font-family="Segoe UI">◐</text>
+        <g font-family="Segoe UI">
+          <rect x="208" y="103" width="157" height="113" rx="12" fill="#142437" stroke="#293b4e"/><text x="227" y="128" fill="#91a5ba" font-size="10">CPU</text><circle cx="252" cy="169" r="25" fill="none" stroke="#294154" stroke-width="7"/><path d="M252 144 A25 25 0 1 1 228 176" fill="none" stroke="#4cc9f0" stroke-width="7"/><text x="238" y="173" fill="#eff8ff" font-size="12" font-weight="700">21%</text><text x="292" y="164" fill="#dae6f0" font-size="10">Processor</text><text x="292" y="184" fill="#dbe9f3" font-size="15" font-weight="700">21%</text>
+          <rect x="374" y="103" width="157" height="113" rx="12" fill="#142437" stroke="#293b4e"/><text x="393" y="128" fill="#91a5ba" font-size="10">MEMORY</text><circle cx="418" cy="169" r="25" fill="none" stroke="#294154" stroke-width="7"/><path d="M418 144 A25 25 0 1 1 398 184" fill="none" stroke="#8275ed" stroke-width="7"/><text x="404" y="173" fill="#eff8ff" font-size="12" font-weight="700">87%</text><text x="458" y="164" fill="#dae6f0" font-size="10">In use</text><text x="458" y="184" fill="#dbe9f3" font-size="13" font-weight="700">13.2 GB</text>
+          <rect x="540" y="103" width="157" height="113" rx="12" fill="#142437" stroke="#293b4e"/><text x="559" y="128" fill="#91a5ba" font-size="10">UPTIME</text><text x="559" y="171" fill="#eff8ff" font-size="22" font-weight="700">11.5 h</text><text x="559" y="193" fill="#91a5ba" font-size="10">Windows 11</text>
+          <rect x="706" y="103" width="162" height="113" rx="12" fill="#142437" stroke="#293b4e"/><text x="725" y="128" fill="#91a5ba" font-size="10">PROCESSES</text><text x="725" y="171" fill="#eff8ff" font-size="25" font-weight="700">333</text><text x="725" y="193" fill="#91a5ba" font-size="10">Local machine</text>
+          <rect x="208" y="231" width="328" height="124" rx="12" fill="#142437" stroke="#293b4e"/><text x="228" y="257" fill="#91a5ba" font-size="10">CPU &amp; MEMORY HISTORY</text><path d="M229 325 L270 311 L310 321 L352 283 L397 302 L438 279 L482 290 L516 268" fill="none" stroke="#4cc9f0" stroke-width="3"/><path d="M229 333 L270 329 L310 313 L352 320 L397 294 L438 309 L482 276 L516 285" fill="none" stroke="#8275ed" stroke-width="3"/>
+          <rect x="548" y="231" width="320" height="124" rx="12" fill="#142437" stroke="#293b4e"/><text x="568" y="257" fill="#91a5ba" font-size="10">DISK USAGE</text><text x="568" y="283" fill="#e3eef7" font-size="10">C: 165 / 238 GB</text><rect x="568" y="291" width="275" height="8" rx="4" fill="#263d51"/><rect x="568" y="291" width="190" height="8" rx="4" fill="url(#uihead)"/><text x="568" y="322" fill="#e3eef7" font-size="10">D: 120 / 432 GB</text><rect x="568" y="330" width="275" height="8" rx="4" fill="#263d51"/><rect x="568" y="330" width="76" height="8" rx="4" fill="url(#uihead)"/>
+          <rect x="208" y="370" width="207" height="119" rx="12" fill="#142437" stroke="#293b4e"/><text x="228" y="397" fill="#91a5ba" font-size="10">LOCAL AI</text><text x="228" y="427" fill="#c5f3df" font-size="12">● 15 models available</text><text x="228" y="453" fill="#a6bacb" font-size="10">Ollama health / model list</text>
+          <rect x="426" y="370" width="207" height="119" rx="12" fill="#142437" stroke="#293b4e"/><text x="446" y="397" fill="#91a5ba" font-size="10">GIT &amp; TOOLING</text><text x="446" y="427" fill="#d3e5ef" font-size="11">Git · VS Code · Ollama</text><text x="446" y="453" fill="#a6bacb" font-size="10">Status / guidance summary</text>
+          <rect x="644" y="370" width="224" height="119" rx="12" fill="#142437" stroke="#293b4e"/><text x="664" y="397" fill="#91a5ba" font-size="10">RECENT ACTIONS</text><text x="664" y="427" fill="#d3e5ef" font-size="11">Status · projects · tasks</text><text x="664" y="453" fill="#a6bacb" font-size="10">Quick workflow entry points</text>
+        </g>
+      </svg>
+      <p class="caption">Figure 2. Illustrative overview screen. Actual live values are populated by bridge APIs; the drawing is explanatory and is not evidence of a particular machine reading.</p>
+    </div>
+    <h3>Navigation map</h3>
+    <table>
+      <thead><tr><th>Group</th><th>Screen</th><th>Primary user task</th></tr></thead>
+      <tbody>
+        <tr><td>System</td><td>Overview</td><td>Review CPU/RAM, uptime, process count, disks, local model availability, tooling labels.</td></tr>
+        <tr><td>System</td><td>Projects</td><td>Refresh the bridge-discovered folder and Git repository cards.</td></tr>
+        <tr><td>System</td><td>Workbench</td><td>Edit and save assistant system instructions; see ready action cards.</td></tr>
+        <tr><td>System</td><td>Processes</td><td>Filter the top process list and request process termination with confirmation.</td></tr>
+        <tr><td>System</td><td>Services</td><td>Filter services and request start/restart/stop operations.</td></tr>
+        <tr><td>System</td><td>Terminal</td><td>Submit a PowerShell command and read its captured output.</td></tr>
+        <tr><td>AI</td><td>Local AI</td><td>Choose a model, refresh installed models, send local chat messages.</td></tr>
+        <tr><td>AI</td><td>Cloud AI</td><td>Select Anthropic/OpenAI/Gemini, set model and API key, chat directly with provider.</td></tr>
+        <tr><td>AI</td><td>MCP</td><td>View descriptive integration cards; live MCP server management is not wired to these cards.</td></tr>
+        <tr><td>AI</td><td>Skills</td><td>Run predefined PowerShell snippets through the same command endpoint.</td></tr>
+        <tr><td>Security</td><td>Security</td><td>See static posture/audit labels; this screen is not a live audit engine.</td></tr>
+        <tr><td>Admin</td><td>Settings</td><td>Set bridge URL/token; clear saved browser data.</td></tr>
+      </tbody>
+    </table>
+    <h3>Responsive and visual behaviour</h3>
+    <ul>
+      <li>On wide screens the dashboard uses a 250-pixel sidebar and a flexible main area.</li>
+      <li>At viewport widths at or below 900 pixels the sidebar moves above the page content.</li>
+      <li>Cards use responsive auto-fit grids; tables are wrapped for horizontal overflow.</li>
+      <li>The theme control changes the document background and browser color scheme. Some component styles remain based on the dark palette, so light-mode consistency should be checked in a dedicated visual pass.</li>
+    </ul>
+  </section>
+
+  <section class="chapter">
+    <h2>4. Feature inventory and implementation status</h2>
+    <p>Status definitions: <strong>Live</strong> means backed by a real local service route and exercised in the tested setup; <strong>Partial</strong> means implemented with important limitations or not fully tested; <strong>UI only</strong> means a label/card is present without the implied complete integration.</p>
+    <table>
+      <thead><tr><th>Capability</th><th>Status</th><th>What it currently does</th><th>Important boundary</th></tr></thead>
+      <tbody>
+        <tr><td>System overview</td><td><span class="tag green">Live</span></td><td>Reads OS/CPU/RAM/uptime/disks/process count, renders rings and CPU/RAM history.</td><td>Polls on interval; errors in the stats loader are silently caught in current frontend.</td></tr>
+        <tr><td>Project discovery</td><td><span class="tag amber">Partial</span></td><td>Scans a fixed set of roots and immediate child Git repositories.</td><td>Not a user-granted workspace picker, deep crawler, dependency graph, or source index. Broad discovery roots should be reviewed for privacy.</td></tr>
+        <tr><td>Workbench</td><td><span class="tag amber">Partial</span></td><td>Stores a context label and system prompt in browser state; renders predefined action cards.</td><td>Does not generate/track an implementation plan or gate every arbitrary command by the prompt.</td></tr>
+        <tr><td>Process manager</td><td><span class="tag green">Live</span></td><td>Fetches 60 processes sorted by working set; filters list; asks before stop request.</td><td>Stop endpoint accepts a PID. Bridge-side target policy is minimal; operation affects the whole user machine.</td></tr>
+        <tr><td>Service manager</td><td><span class="tag green">Live</span></td><td>Lists Windows services and allows start/restart/stop from UI.</td><td>Service mutation is consequential and permissions vary. Server route does not currently enforce per-service approval policy.</td></tr>
+        <tr><td>Terminal</td><td><span class="tag amber">High-impact live capability</span></td><td>Runs a supplied PowerShell script block and returns formatted output.</td><td>Authenticated user can submit arbitrary commands; this is not a sandbox and no UI confirmation provides containment.</td></tr>
+        <tr><td>Local AI</td><td><span class="tag green">Live</span></td><td>Lists installed Ollama models and sends conversation turns through the bridge.</td><td>Current implementation is request/response, not streaming; requires local Ollama/model.</td></tr>
+        <tr><td>Cloud AI</td><td><span class="tag amber">Partial</span></td><td>Browser directly calls Anthropic, OpenAI, or Gemini APIs.</td><td>Key is saved in localStorage by current state handler. Browser origin/CORS/provider policy may limit use. Use only if intentional; avoid shared browser profiles.</td></tr>
+        <tr><td>MCP</td><td><span class="tag amber">UI only / partial backend</span></td><td>Dashboard displays sample service descriptions; bridge has MCP process start/status/stop routes.</td><td>No visible configuration form wires the cards to the bridge lifecycle API in this UI.</td></tr>
+        <tr><td>Skills</td><td><span class="tag green">Live predefined commands</span></td><td>Three hard-coded snippets call the terminal route and show output.</td><td>These execute commands, not isolated skills; output displays in the terminal panel.</td></tr>
+        <tr><td>Security / audit</td><td><span class="tag amber">Static display</span></td><td>Shows explanatory security and audit status labels.</td><td>Labels are hard-coded UI content; there is no persistent action audit log or scan implementation behind them.</td></tr>
+        <tr><td>Claude Desktop config</td><td><span class="tag amber">Bridge API only</span></td><td>Bridge reads/writes the per-user Claude Desktop JSON config and backs up before write.</td><td>No corresponding configuration editor is exposed in current dashboard navigation.</td></tr>
+      </tbody>
+    </table>
+    <div class="callout warning"><strong>Interpret “security posture” carefully.</strong> The dashboard’s static checklist is descriptive, not the result of an automated audit. It must not be used to claim that the workstation or application passed a security scan.</div>
+  </section>
+
+  <section class="chapter">
+    <h2>5. Bridge/API reference</h2>
+    <h3>Connection and authentication</h3>
+    <ul>
+      <li>Default bridge port: <code>8787</code>. If busy, the script probes a short configured list of alternatives.</li>
+      <li>Listener prefix: <code>http://127.0.0.1:&lt;port&gt;/</code>.</li>
+      <li>A random 16-byte token is generated at startup when no token parameter is supplied; requests use <code>Authorization: Bearer &lt;token&gt;</code>.</li>
+      <li>Host, remote IP, and non-null origin are checked for local request patterns; protected API routes call the shared authorization function.</li>
+      <li>Ollama base URL defaults to <code>http://127.0.0.1:11434</code> and can be overridden with a script parameter.</li>
+    </ul>
+    <h3>Route inventory</h3>
+    <table>
+      <thead><tr><th>Method + route</th><th>Purpose / data</th><th>Impact</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">GET /api/ping</td><td>Connection status, admin flag, computer and user name.</td><td>Local identity metadata</td></tr>
+        <tr><td class="mono">GET /api/health</td><td>OS caption/build and uptime.</td><td>System metadata</td></tr>
+        <tr><td class="mono">GET /api/actions</td><td>Action registry with permission, risk, approval and audit labels.</td><td>Read-only metadata</td></tr>
+        <tr><td class="mono">GET /api/projects</td><td>Candidate roots and nearby Git repositories, paths/branch/status.</td><td>Filesystem metadata</td></tr>
+        <tr><td class="mono">GET /api/stats</td><td>CPU, RAM, disk, uptime, host and process count.</td><td>System metadata</td></tr>
+        <tr><td class="mono">GET /api/processes</td><td>Top 60 processes by memory.</td><td>Process metadata</td></tr>
+        <tr><td class="mono">POST /api/process/stop</td><td>Force-stop a PID supplied in request JSON.</td><td><span class="tag red">Destructive</span></td></tr>
+        <tr><td class="mono">GET /api/services</td><td>Enumerate Windows service name, display name, status and startup type.</td><td>System metadata</td></tr>
+        <tr><td class="mono">POST /api/service</td><td>Start, stop or restart a named Windows service.</td><td><span class="tag red">System mutation</span></td></tr>
+        <tr><td class="mono">POST /api/action</td><td>Run a named allowlisted action; checks registration, approval and admin flag.</td><td>Varies; some require explicit approved field</td></tr>
+        <tr><td class="mono">POST /api/run</td><td>Compile and execute supplied PowerShell script block; returns text.</td><td><span class="tag red">Arbitrary code execution</span></td></tr>
+        <tr><td class="mono">GET /api/ollama/tags</td><td>Proxy installed Ollama model list.</td><td>Local inference metadata</td></tr>
+        <tr><td class="mono">POST /api/ollama/chat</td><td>Proxy chat request; forces non-streaming mode for JSON response handling.</td><td>Local inference</td></tr>
+        <tr><td class="mono">GET /api/mcp/status</td><td>Show process IDs/running state for bridge-managed processes.</td><td>Process metadata</td></tr>
+        <tr><td class="mono">POST /api/mcp/start</td><td>Start a supplied executable with args and optional environment values.</td><td><span class="tag red">Process launch</span></td></tr>
+        <tr><td class="mono">POST /api/mcp/stop</td><td>Stop a bridge-tracked process.</td><td><span class="tag amber">Process termination</span></td></tr>
+        <tr><td class="mono">GET /api/claude-config</td><td>Read Claude Desktop config JSON from the current user profile.</td><td>Potentially sensitive config</td></tr>
+        <tr><td class="mono">POST /api/claude-config</td><td>Validate JSON, make timestamped backup, then write config.</td><td><span class="tag red">User config write</span></td></tr>
+      </tbody>
+    </table>
+    <h3>Action registry</h3>
+    <table>
+      <thead><tr><th>Category</th><th>Examples</th><th>Current guard indicated in registry/route</th></tr></thead>
+      <tbody>
+        <tr><td>Low-risk utilities</td><td>Lock, cancel shutdown, flush DNS, Task Manager, File Explorer, Settings, Device Manager, Windows Update.</td><td>Most are marked standard permission; no approval required.</td></tr>
+        <tr><td>Power changes</td><td>Sleep, restart, shutdown; performance profiles.</td><td>Sleep/restart/shutdown and high-performance profile are flagged approval-required; some require admin.</td></tr>
+        <tr><td>Cleanup</td><td>Empty recycle bin; clean user temp directory.</td><td>Approval-required in registry; destructive file operations.</td></tr>
+      </tbody>
+    </table>
+    <div class="callout danger"><strong>Important implementation gap:</strong> the bridge exposes more powerful routes than the UI action registry implies. In particular, <code>/api/run</code>, service changes, PID termination, and MCP process launch are bearer-token protected but are not restricted by an allowlisted command policy. A token holder must be treated as a highly trusted local operator.</div>
+  </section>
+
+  <section class="chapter">
+    <h2>6. Security, privacy, and trust boundaries</h2>
+    <h3>Existing controls</h3>
+    <ul>
+      <li>Loopback-only listener prefix limits direct access to the host machine and avoids an intentional LAN bind.</li>
+      <li>Random startup token provides an access check for protected endpoints.</li>
+      <li>Host, client address, and origin checks attempt to limit requests to local browser contexts.</li>
+      <li>Allowlisted system actions include risk/permission/approval metadata, and the server checks approval/admin status for those actions.</li>
+      <li>Claude config writes create a timestamped backup before replacing the file.</li>
+      <li>The README warns not to publish the bridge and recommends loopback serving for the dashboard.</li>
+    </ul>
+    <h3>Risk heat map</h3>
+    <table>
+      <thead><tr><th>Risk</th><th>Likelihood / impact</th><th>Why it matters</th><th>Recommended treatment</th></tr></thead>
+      <tbody>
+        <tr><td>Arbitrary command execution by token holder</td><td><span class="tag red">Critical impact</span></td><td><code>/api/run</code> executes caller-supplied PowerShell with the bridge user's permissions.</td><td>Disable by default or replace with named allowlisted tasks, restricted arguments, timeouts, output caps, and explicit server-side policy.</td></tr>
+        <tr><td>Browser token / cloud key in localStorage</td><td><span class="tag red">High</span></td><td>Current state object saves bridge token and cloud key in the browser origin's local storage.</td><td>Do not reuse browser profiles; minimize persistence; separate cloud keys; document origin/XSS exposure; consider OS-backed secret storage.</td></tr>
+        <tr><td>Wide Windows management routes</td><td><span class="tag red">High</span></td><td>Service/process/MCP routes accept mutation requests without a central least-privilege action policy.</td><td>Validate request schema and targets; add explicit approval on server and auditable allowlists.</td></tr>
+        <tr><td>Misleading static security indicators</td><td><span class="tag amber">Medium</span></td><td>Security and audit UI rows are hard-coded, not derived from event data.</td><td>Label as guidance until actual checks and durable audit events exist.</td></tr>
+        <tr><td>Silent dashboard failures</td><td><span class="tag amber">Medium</span></td><td>Some fetch/load code catches and suppresses exceptions; users may see stale/placeholder metrics.</td><td>Expose per-panel last-updated, error message, and retry states; never present stale values as fresh.</td></tr>
+        <tr><td>Local file discovery scope</td><td><span class="tag amber">Medium</span></td><td>Project discovery roots include profile/Desktop/program directories and process working directory; paths reveal user data layout.</td><td>Use explicit approved workspaces; least-data default; redact paths in exports.</td></tr>
+        <tr><td>Public bridge exposure</td><td><span class="tag red">Unacceptable</span></td><td>Machine-control API is not a hosted multi-user service; network exposure could transfer control.</td><td>Never publish the real bridge. Public demo must use synthetic backend and no machine capability.</td></tr>
+      </tbody>
+    </table>
+    <h3>Privacy/data handling</h3>
+    <ul>
+      <li>Bridge responses include computer name, user name, CPU/memory/disk usage, process names, service inventory, candidate folder paths, and optionally project Git state.</li>
+      <li>Local AI prompts go to the configured local Ollama server by default; the bridge forwards chat content and model name.</li>
+      <li>Cloud chat sends prompt contents and an API key directly from the browser to the selected third-party provider. The cloud key is persisted in the current browser state implementation.</li>
+      <li>No code in the reviewed project establishes a telemetry or analytics system. The absence of observed telemetry is not a substitute for a documented release privacy review.</li>
+    </ul>
+    <div class="callout warning"><strong>Safe deployment model:</strong> keep the workstation UI/bridge private and local. If sharing a demo publicly, run a separate version with mock data and no routes to local processes, files, services, shell, models, or credentials.</div>
+  </section>
+
+  <section class="chapter">
+    <h2>7. Verification performed and evidence</h2>
+    <p>This section records the checks actually performed in the available Windows environment. It does not claim comprehensive automated testing or certification across every browser or OS.</p>
+    <table>
+      <thead><tr><th>Check</th><th>Observed result</th><th>Evidence boundary</th></tr></thead>
+      <tbody>
+        <tr><td>Windows PowerShell syntax</td><td><span class="tag green">Pass</span> Windows PowerShell 5.1 AST parser reported no parse errors after the authorization fix and after the Ollama route update.</td><td>One PowerShell runtime; PowerShell 7 compatibility not exercised.</td></tr>
+        <tr><td>Frontend inline JavaScript parse</td><td><span class="tag green">Pass</span> Extracted inline script compiled with Node.js <code>new Function</code>.</td><td>Syntax check does not prove all runtime paths.</td></tr>
+        <tr><td>Bridge authentication</td><td><span class="tag green">Pass</span> Valid token ping returned HTTP 200; absent and incorrect token returned HTTP 401.</td><td>Local loopback smoke test only.</td></tr>
+        <tr><td>Origin check</td><td><span class="tag green">Pass</span> A request with an invalid external Origin was rejected with HTTP 403.</td><td>Does not replace a full browser-origin / CSRF assessment.</td></tr>
+        <tr><td>Read APIs</td><td><span class="tag green">Pass</span> Stats, projects, processes, and services returned HTTP 200 in local smoke tests.</td><td>Host-specific results; no load or stress tests.</td></tr>
+        <tr><td>Integrated browser navigation</td><td><span class="tag green">Pass</span> All 12 page headings were traversed in the VS Code integrated browser.</td><td>Browser user-agent reported Chromium 150 / Electron 43 on Windows 11; not a matrix test of installed Edge/Chrome/Firefox products.</td></tr>
+        <tr><td>Operational UI</td><td><span class="tag green">Pass</span> Overview metrics, discovered projects, 60 process rows, service rows, and local model list populated.</td><td>Representative workstation only.</td></tr>
+        <tr><td>Terminal</td><td><span class="tag green">Pass</span> Read-only command <code>Get-Date -Format yyyy-MM-dd</code> returned output and a completed state.</td><td>Does not make arbitrary command execution safe.</td></tr>
+        <tr><td>Local AI chat</td><td><span class="tag green">Pass after fix</span> Local selected model returned the exact test response <code>READY</code> through dashboard → bridge → Ollama.</td><td>One installed model and one short prompt; no throughput/quality tests.</td></tr>
+        <tr><td>Firefox</td><td><span class="tag amber">Not tested</span> Firefox executable was not present in the test environment.</td><td>No claim of Firefox support validation.</td></tr>
+      </tbody>
+    </table>
+    <h3>Defects found and corrected during the project work</h3>
+    <ol>
+      <li><strong>PowerShell parser failure:</strong> malformed token comparison and duplicate authorization helper prevented the bridge script from parsing. Replaced it with one valid check and updated the request handler to use that function.</li>
+      <li><strong>Local AI empty responses:</strong> dashboard read a single JSON object, but the bridge forwarded Ollama's default stream mode. The bridge now requests <code>stream = false</code> and returns the complete response; the UI chat was then verified.</li>
+      <li><strong>Startup instructions:</strong> corrected README and settings guidance so normal startup uses a regular PowerShell session and explains the user-scoped execution-policy bypass.</li>
+    </ol>
+    <div class="callout"><strong>Not performed:</strong> full unit/automation test suite, Windows service mutation tests, reboot/shutdown tests, external network exposure, adversarial security review, Firefox UI run, and public staging deployment.</div>
+  </section>
+
+  <section class="chapter">
+    <h2>8. Known limitations and recommendations</h2>
+    <h3>Immediate P0 — required before broader local rollout</h3>
+    <ol>
+      <li><strong>Contain command execution.</strong> Replace general-purpose <code>/api/run</code> with named safe operations, configurable allowlists, and argument schemas. If unrestricted shell access is intentional, make the trusted-user risk explicit and disable it by default.</li>
+      <li><strong>Unify authorization and policy.</strong> Every mutating route (actions, service, process, MCP, config write, command execution) should pass a central policy function with role, target, approval, and audit metadata.</li>
+      <li><strong>Bound request and execution resource use.</strong> Set request body size caps, command duration/timeouts, output size limits, and cancellation behavior. Registry timeout/output labels are metadata today and are not consistently enforced by the routes.</li>
+      <li><strong>Make errors visible.</strong> Remove silent catches in stats/provider flows; add last-success timestamp, error message, retry, and stale-data indication to each panel.</li>
+      <li><strong>Protect browser state.</strong> Handle invalid JSON/corrupt localStorage and browser storage denial. Avoid storing cloud API keys and long-lived bridge credentials unnecessarily; provide an explicit clear/logout flow.</li>
+      <li><strong>Review discovery and configuration endpoints.</strong> Limit project discovery to user-approved roots; restrict Claude config read/write to an intentional UI, with backups and clear confirmation.</li>
+    </ol>
+    <h3>P1 — release quality</h3>
+    <ul>
+      <li>Add regression tests for parser cleanliness, auth, hostile origin, malformed JSON, unknown route, invalid action, approval/admin denial, request limits, and shutdown cleanup.</li>
+      <li>Exercise the supported browser versions on Windows at desktop and narrow viewport sizes; record actual version, result, and screenshot/test evidence.</li>
+      <li>Implement keyboard-visible focus, accessible labels, reduced-motion support, error announcements, responsive table handling, and a deliberate light-theme palette.</li>
+      <li>Distinguish actual tooling discovery from static “Available locally” claims.</li>
+      <li>Add real audit events with timestamps, action, target, caller context, decision and result; avoid recording secrets or full command content where unnecessary.</li>
+    </ul>
+    <h3>P2/P3 — product expansion</h3>
+    <ul>
+      <li>Explicit project folder selection, safe file tree, manifest/language detection, secret-aware excludes, searchable local index, and source-referenced answers.</li>
+      <li>Patch-based editor workflow with diff review, per-file approval, backups, apply/reject/revert and verified test outcomes.</li>
+      <li>Ollama health state, streaming with cancellation, history persistence controls, model settings, and timeouts.</li>
+      <li>Wire MCP server lifecycle UI to bridge routes only after executable allowlisting and isolation are specified.</li>
+      <li>Create a separate public demo mode with synthetic data. Do not tunnel or forward the live local bridge.</li>
+    </ul>
+  </section>
+
+  <section class="chapter">
+    <h2>9. Upgrade roadmap and acceptance gates</h2>
+    <div class="diagram">
+      <svg viewBox="0 0 900 260" role="img" aria-label="Helpyard staged roadmap">
+        <defs><linearGradient id="road" x1="0" x2="1"><stop stop-color="#40c9e7"/><stop offset=".52" stop-color="#7a78e8"/><stop offset="1" stop-color="#42b995"/></linearGradient></defs>
+        <rect x="8" y="8" width="884" height="244" rx="16" fill="#0d1f30"/>
+        <text x="34" y="43" fill="#eaf7ff" font-size="17" font-family="Segoe UI" font-weight="700">FROM LOCAL PROTOTYPE TO SAFE PRODUCT</text>
+        <line x1="91" y1="128" x2="806" y2="128" stroke="url(#road)" stroke-width="8" stroke-linecap="round"/>
+        <g font-family="Segoe UI" text-anchor="middle">
+          <circle cx="104" cy="128" r="24" fill="#4ccce8"/><text x="104" y="134" fill="#082032" font-size="16" font-weight="800">0</text>
+          <text x="104" y="82" fill="#eef8ff" font-size="13" font-weight="700">Repair</text><text x="104" y="177" fill="#bad0df" font-size="10">parse · auth</text><text x="104" y="194" fill="#bad0df" font-size="10">response shape</text>
+          <circle cx="270" cy="128" r="24" fill="#45b9db"/><text x="270" y="134" fill="#082032" font-size="16" font-weight="800">1</text>
+          <text x="270" y="82" fill="#eef8ff" font-size="13" font-weight="700">Harden</text><text x="270" y="177" fill="#bad0df" font-size="10">policy · bounds</text><text x="270" y="194" fill="#bad0df" font-size="10">errors · audit</text>
+          <circle cx="438" cy="128" r="24" fill="#777be4"/><text x="438" y="134" fill="white" font-size="16" font-weight="800">2</text>
+          <text x="438" y="82" fill="#eef8ff" font-size="13" font-weight="700">Validate</text><text x="438" y="177" fill="#bad0df" font-size="10">browser matrix</text><text x="438" y="194" fill="#bad0df" font-size="10">negative tests</text>
+          <circle cx="607" cy="128" r="24" fill="#6987d6"/><text x="607" y="134" fill="white" font-size="16" font-weight="800">3</text>
+          <text x="607" y="82" fill="#eef8ff" font-size="13" font-weight="700">Build</text><text x="607" y="177" fill="#bad0df" font-size="10">project map</text><text x="607" y="194" fill="#bad0df" font-size="10">reviewable edits</text>
+          <circle cx="786" cy="128" r="24" fill="#44bd98"/><text x="786" y="134" fill="#07271e" font-size="16" font-weight="800">4</text>
+          <text x="786" y="82" fill="#eef8ff" font-size="13" font-weight="700">Pilot</text><text x="786" y="177" fill="#bad0df" font-size="10">synthetic demo</text><text x="786" y="194" fill="#bad0df" font-size="10">rollback · privacy</text>
+        </g>
+        <text x="34" y="232" fill="#ffcc79" font-size="10" font-family="Segoe UI">Public release gate: phases 0–2 complete; demo never connects to a live workstation bridge.</text>
+      </svg>
+      <p class="caption">Figure 3. Sequencing avoids building feature breadth on top of an unsafe or untestable execution foundation.</p>
+    </div>
+    <table>
+      <thead><tr><th>Phase</th><th>Deliverables</th><th>Acceptance gate</th><th>Priority</th></tr></thead>
+      <tbody>
+        <tr><td>0 · Stabilize</td><td>Parser/auth/chat fixes, startup steps, repeatable smoke test.</td><td>Parse clean; valid/invalid auth covered; live local chat works; known error states documented.</td><td>P0 · in progress / partly verified</td></tr>
+        <tr><td>1 · Secure</td><td>Central policy, restricted commands, input/output/time bounds, error reporting, audit log, storage cleanup.</td><td>Mutation routes have server-side policy; rejected requests do not alter machine state; audit evidence exists.</td><td>P0</td></tr>
+        <tr><td>2 · Qualify</td><td>Browser/device matrix, accessibility and responsive pass, install/stop docs, regression automation.</td><td>Supported browser list and recorded test evidence; no blocker defects in representative offline/connected cases.</td><td>P1</td></tr>
+        <tr><td>3 · Workspace</td><td>Explicit allowed folders, safe project explorer, metadata index, model-assisted cited context.</td><td>Traversal and secret-exclusion tests pass; user can clear context/history.</td><td>P2</td></tr>
+        <tr><td>4 · Edit safely</td><td>Diff-based patches, approvals, backup/rollback, controlled test execution.</td><td>Rejected patch never writes; accepted patch is recoverable; test exit status is accurate.</td><td>P2</td></tr>
+        <tr><td>5 · Public pilot</td><td>Isolated mock deployment, privacy statement, support/feedback, rollback, release notes.</td><td>No bridge credentials or workstation endpoint in demo; synthetic-data tests and rollback pass.</td><td>P3</td></tr>
+      </tbody>
+    </table>
+    <div class="callout danger"><strong>Go/no-go:</strong> no public launch of the machine-control bridge. Approve a public-facing pilot only after P0/P1 gates and only against a separate mock or sandbox service.</div>
+  </section>
+
+  <section class="chapter">
+    <h2>10. Installation, startup, and daily-use guide</h2>
+    <h3>Prerequisites</h3>
+    <ul>
+      <li>Windows with Windows PowerShell; regular user permissions for normal read/status use.</li>
+      <li>A current browser. The UI was exercised in the VS Code integrated Chromium browser; other browser products should be tested directly before claiming support.</li>
+      <li>Optional: Python for the simple static HTTP server, or another local static-file host. The bridge itself does not require Node.js.</li>
+      <li>Optional: Ollama reachable at <code>http://127.0.0.1:11434</code> with at least one pulled model.</li>
+    </ul>
+    <h3>Start the bridge</h3>
+    <div class="card tint">
+      <p>Open a regular PowerShell terminal in the project folder and start the bridge using a process-scoped execution-policy bypass:</p>
+      <p><code>powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\bridge.ps1</code></p>
+      <p>The bridge prints the listening URL and a generated bearer token. Keep the terminal open while the bridge is in use. Stop it with <code>Ctrl+C</code>.</p>
+    </div>
+    <h3>Serve and open the dashboard</h3>
+    <div class="card tint">
+      <p>In another terminal, serve this directory on loopback:</p>
+      <p><code>python -m http.server 8000 --bind 127.0.0.1</code></p>
+      <p>Open <code>http://127.0.0.1:8000/pc-control-dashboard.html</code> in the browser. Serving over localhost provides predictable browser origin/fetch behavior.</p>
+    </div>
+    <h3>Connect and operate</h3>
+    <ol>
+      <li>Open Settings from the sidebar.</li>
+      <li>Enter the bridge URL printed in PowerShell (default port 8787 unless the selected port was changed).</li>
+      <li>Paste the generated token and select Save &amp; connect. The sidebar should show Connected and the host name.</li>
+      <li>Use Overview first; navigate to Projects, Processes, Services, or Local AI only as needed. Refresh buttons reload related data.</li>
+      <li>Use Terminal and action buttons only for commands/actions understood and intentionally authorized. A browser confirmation does not sandbox or neutralize the command.</li>
+      <li>Clear saved browser data from Settings when finished on a shared profile. Stop the bridge and static server when done.</li>
+    </ol>
+    <h3>Common recovery</h3>
+    <table>
+      <thead><tr><th>Symptom</th><th>Check</th><th>Response</th></tr></thead>
+      <tbody>
+        <tr><td>Sidebar stays Offline</td><td>Bridge process, URL/selected port, token, local server origin.</td><td>Copy the latest bridge URL/token from startup output and reconnect in Settings.</td></tr>
+        <tr><td>Ollama Offline / no models</td><td>Ollama service and model list endpoint.</td><td>Start Ollama, pull a model, refresh Local AI; dashboard remains usable without AI.</td></tr>
+        <tr><td>Administrator-required action rejected</td><td>Bridge says the current process is not elevated.</td><td>Use the standard account for routine work. Elevate only if the specific action is required and understood.</td></tr>
+        <tr><td>Port conflict</td><td>Bridge startup output reports selected fallback port.</td><td>Use the printed URL, not the default, in Settings.</td></tr>
+        <tr><td>Browser cannot fetch bridge</td><td>Verify both services are on localhost and inspect browser console/network.</td><td>Serve the HTML on loopback; avoid remote origins and do not broaden bridge binding.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="chapter">
+    <h2>11. Project files and glossary</h2>
+    <h3>Reviewed and generated files</h3>
+    <table>
+      <thead><tr><th>File</th><th>Role</th><th>Report note</th></tr></thead>
+      <tbody>
+        <tr><td><code>pc-control-dashboard.html</code></td><td>Application interface, styling and browser logic.</td><td>Single-file dashboard; main user entry point.</td></tr>
+        <tr><td><code>bridge.ps1</code></td><td>Windows localhost HTTP service and route handlers.</td><td>Privileged trust boundary; must not be public-hosted.</td></tr>
+        <tr><td><code>README.md</code></td><td>Startup, safety and validation guidance.</td><td>Updated to reflect regular-user startup and loopback serving.</td></tr>
+        <tr><td><code>update plan no1.txt</code></td><td>Original product vision and broad implementation ideas.</td><td>Describes future project intelligence, editor and 3D workspace goals; those goals are not all implemented.</td></tr>
+        <tr><td><code>Plannumber1.Pdf</code></td><td>Numbered upgrade and launch plan.</td><td>Prior companion deliverable; execution gates and phase plan.</td></tr>
+        <tr><td><code>Plannumber1.html</code></td><td>Editable HTML source for the prior plan PDF.</td><td>Print-ready source for revision.</td></tr>
+        <tr><td><code>Project Report Number1.html</code></td><td>Editable source for this report.</td><td>Contains vectors/diagrams and presentation styling.</td></tr>
+        <tr><td><code>Project Report Number1.Pdf</code></td><td>Requested presentation/report artifact.</td><td>Generated from this HTML source for sharing/printing.</td></tr>
+      </tbody>
+    </table>
+    <h3>Glossary</h3>
+    <table>
+      <thead><tr><th>Term</th><th>Meaning in this project</th></tr></thead>
+      <tbody>
+        <tr><td>Bridge</td><td>The PowerShell process that exposes a local HTTP API to the browser.</td></tr>
+        <tr><td>Loopback</td><td>Local host-only network interface, typically 127.0.0.1; not intended for remote users.</td></tr>
+        <tr><td>Bearer token</td><td>Secret string sent in the Authorization header to authenticate bridge requests.</td></tr>
+        <tr><td>Ollama</td><td>Optional local service for listing and running installed language models.</td></tr>
+        <tr><td>MCP</td><td>Model Context Protocol; a potential integration area, only partly represented in the current interface.</td></tr>
+        <tr><td>LocalStorage</td><td>Browser-origin key/value storage; convenient but not equivalent to a secure credential vault.</td></tr>
+        <tr><td>Mock backend</td><td>Safe substitute that returns synthetic data without reaching a user's real workstation.</td></tr>
+      </tbody>
+    </table>
+    <h3>Final assessment</h3>
+    <p>Helpyard has a compact, understandable architecture and demonstrates useful local workstation workflows. The live system/bridge and local AI path were verified in one Windows Chromium-based environment. Its next success criterion is not more screens; it is consistently enforcing least privilege, surfacing errors accurately, and capturing repeatable cross-browser evidence. Treat the current build as a local prototype until those controls and release gates are completed.</p>
+    <div class="footer">Helpyard · Project Report Number 1 · Prepared 17 October 2026 · Based on reviewed repository files and local validation evidence · Internal project documentation</div>
+  </section>
+</body>
+</html>
