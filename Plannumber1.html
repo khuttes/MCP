@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Helpyard - Project Upgrade and Launch Plan</title>
+  <style>
+    @page { size: A4; margin: 18mm 17mm 19mm; }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: #182538; font: 10pt/1.48 "Segoe UI", Arial, sans-serif; }
+    h1, h2, h3 { color: #102941; line-height: 1.2; }
+    h1 { margin: 0 0 10pt; font-size: 31pt; }
+    h2 { margin: 21pt 0 8pt; padding-bottom: 5pt; border-bottom: 2px solid #38a9cf; font-size: 17pt; page-break-after: avoid; }
+    h3 { margin: 13pt 0 5pt; font-size: 12pt; page-break-after: avoid; }
+    p { margin: 5pt 0 8pt; }
+    ul, ol { margin: 5pt 0 10pt; padding-left: 20pt; }
+    li { margin: 3pt 0; }
+    .cover { min-height: 245mm; display: flex; flex-direction: column; justify-content: center; page-break-after: always; }
+    .eyebrow { color: #1687a8; font-size: 10pt; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+    .subtitle { max-width: 145mm; color: #53667c; font-size: 15pt; }
+    .callout { margin: 13pt 0; padding: 11pt 13pt; border-left: 4px solid #e4a53c; background: #fff8e9; }
+    .status { display: inline-block; margin-top: 10pt; padding: 5pt 9pt; border-radius: 5pt; color: #6d4710; background: #fff0ce; font-weight: 700; }
+    table { width: 100%; margin: 8pt 0 13pt; border-collapse: collapse; font-size: 9pt; page-break-inside: avoid; }
+    th, td { padding: 6pt 7pt; border: 1px solid #cbd5df; text-align: left; vertical-align: top; }
+    th { color: #102941; background: #eaf3f8; }
+    .phase { margin: 8pt 0 12pt; padding: 0 0 7pt 10pt; border-left: 3px solid #38a9cf; page-break-inside: avoid; }
+    .phase h3 { margin-top: 4pt; }
+    .small { color: #5a6d81; font-size: 8.5pt; }
+    .gate { padding: 8pt 10pt; border: 1px solid #a8c8d8; border-radius: 5pt; background: #f2f9fc; }
+    .footer { margin-top: 16pt; color: #64788c; font-size: 8pt; }
+  </style>
+</head>
+<body>
+  <section class="cover">
+    <div class="eyebrow">Helpyard | Local-first project</div>
+    <h1>Project Upgrade &amp;<br>Launch Plan</h1>
+    <p class="subtitle">A staged, testable path from the current single-page dashboard and Windows bridge to a reliable local developer workspace.</p>
+    <p><strong>Plan number:</strong> 1<br><strong>Prepared:</strong> 17 October 2026<br><strong>Project baseline:</strong> HTML/CSS/JavaScript dashboard + PowerShell localhost bridge</p>
+    <span class="status">Current release gate: NOT READY FOR PUBLIC LAUNCH</span>
+    <div class="callout"><strong>Verified blockers found and fixed:</strong> the bridge contained a PowerShell parser error and duplicate authorization helpers; the Ollama route also streamed responses while the dashboard expected a single JSON reply. These defects are corrected. Full cross-browser validation and the remaining release gates below still need to pass before claiming launch readiness.</div>
+    <p class="small">This plan separates the repair executed now from subsequent hardening and feature upgrades. No step treats an unrun test as a pass.</p>
+  </section>
+
+  <h2>1. Objectives and boundaries</h2>
+  <ul>
+    <li>Keep the current lightweight HTML/CSS/JavaScript frontend and localhost Windows bridge as the initial product architecture.</li>
+    <li>Make startup, browser connection, errors, and test outcomes observable and repeatable.</li>
+    <li>Keep privileged operations local, token-protected, explicitly approved when risky, and unavailable to remote hosts.</li>
+    <li>Prioritize reliability and security before adding 3D visuals, project indexing, editor features, or public distribution.</li>
+  </ul>
+  <div class="callout"><strong>Public exposure warning:</strong> the bridge is a local workstation-control service, not a public web API. Never expose its port to the internet or a LAN. A public demo must use a separate mock/sandbox backend with no access to personal files, processes, or system controls.</div>
+
+  <h2>2. Execution order and completion criteria</h2>
+  <table>
+    <thead><tr><th>Step</th><th>Priority</th><th>Implementation</th><th>Done when</th></tr></thead>
+    <tbody>
+      <tr><td>1. Repair baseline</td><td>P0 / executed</td><td>Fix the malformed authorization condition; remove duplicate authorization code; route all protected requests through the single valid helper.</td><td>PowerShell AST parser reports zero errors; expected-token request passes and invalid/missing token is rejected. Syntax and token checks passed in Windows PowerShell 5.1.</td></tr>
+      <tr><td>2. Verify bridge API</td><td>P0 / partial</td><td>Run bridge on loopback; check ping, auth failures, health/stats, chat serialization, and malformed or unknown requests. Confirm graceful stop and useful errors.</td><td>Repeatable local smoke tests pass on Windows PowerShell 5.1 and PowerShell 7 if supported. Ping/auth and Ollama chat passed; the full route matrix remains open.</td></tr>
+      <tr><td>3. Stabilize dashboard</td><td>P0</td><td>Guard corrupt/unavailable browser storage; show connection and provider failures; remove silent error swallowing; validate required DOM state and saved settings.</td><td>No uncaught page errors; offline mode remains usable; each failure is visible and recoverable.</td></tr>
+      <tr><td>4. Harden bridge policy</td><td>P0</td><td>Validate request size and JSON, origin/host, route and arguments; apply least privilege and approval on the bridge; constrain process/service operations; add bounded audit records.</td><td>Negative tests prove rejected requests do not change system state; bridge remains loopback-only.</td></tr>
+      <tr><td>5. Reproducible setup</td><td>P1</td><td>Add a user-mode launcher, clear prerequisites, startup diagnostics, port/token guidance, health check, and uninstall/recovery steps.</td><td>Fresh Windows account can start and stop the app from documented steps without admin rights unless a specific approved feature requires them.</td></tr>
+      <tr><td>6. Cross-browser QA</td><td>P1</td><td>Test current stable Edge, Chrome, and Firefox on Windows at desktop and narrow widths; exercise navigation, settings, reconnect, local AI absent/present, and accessibility basics.</td><td>Recorded matrix contains browser/version, OS, scenario, result, and evidence; no unsupported-browser claims.</td></tr>
+      <tr><td>7. Release security review</td><td>P1</td><td>Review token lifecycle, CORS, local-network exposure, secrets, dangerous actions, logging, and threat model; run dependency and static checks.</td><td>No unresolved critical/high findings; public-facing build uses an isolated mock backend.</td></tr>
+      <tr><td>8. Project intelligence</td><td>P2</td><td>Implement explicit project-folder authorization, safe file enumeration, ignores/size limits, manifest detection, and local search before AI context.</td><td>Tests confirm secrets/generated files are excluded and paths cannot escape the approved workspace.</td></tr>
+      <tr><td>9. AI and edit workflow</td><td>P2</td><td>Add Ollama health/streaming, source citations, proposed diffs, explicit review, backups, apply/reject/revert, and approved test execution.</td><td>AI cannot write or execute without user review; failures and exit codes are shown accurately.</td></tr>
+      <tr><td>10. Public pilot</td><td>P3</td><td>Publish a demo build with simulated data only, privacy notice, support channel, rollback, versioned release notes, and opt-in feedback.</td><td>External test does not grant access to any developer machine or live bridge.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>3. Detailed work packages</h2>
+  <div class="phase"><h3>Phase A — Baseline repair and smoke tests (P0)</h3><ol><li>Keep the authorization logic singular and parseable.</li><li>Parse the complete bridge file before each test run.</li><li>Start it with a test token on a free loopback port.</li><li>Verify authorized ping returns the expected JSON; verify absent/wrong token is rejected.</li><li>Check CORS preflight and invalid origins; confirm the listener is bound only to 127.0.0.1.</li><li>Record exact PowerShell version and outcomes.</li></ol></div>
+  <div class="phase"><h3>Phase B — Frontend resilience and accessibility (P0/P1)</h3><ol><li>Provide visible loading, connected, offline, and retry states for each service-backed panel.</li><li>Handle invalid localStorage data without preventing initial render; avoid silently losing settings.</li><li>Expose errors through the UI and diagnostic log without leaking credentials.</li><li>Support keyboard focus, semantic labels, adequate contrast, reduced motion, and responsive layouts.</li><li>Verify no external network access is required for the local-only baseline.</li></ol></div>
+  <div class="phase"><h3>Phase C — Security and operations (P0/P1)</h3><ol><li>Document the localhost-only security boundary and prevent LAN/public binding.</li><li>Require confirmation server-side for destructive or privileged operations; validate IDs and service names.</li><li>Limit command execution capability; do not treat an authenticated browser token as a safe command policy.</li><li>Bound input/output and request duration; return stable JSON errors and meaningful status codes.</li><li>Test hostile origins, invalid JSON, oversized inputs, unknown routes, bad tokens, and rejected approvals.</li></ol></div>
+  <div class="phase"><h3>Phase D — Release and public pilot (P1/P3)</h3><ol><li>Provide an easy local launcher and clean shutdown instructions.</li><li>Run and publish a browser/OS/version matrix; distinguish verified, unsupported, and untested cases.</li><li>Run security review and resolve release-blocking findings.</li><li>For public evaluation, package a demo mode with synthetic metrics and no workstation bridge or user data.</li><li>Use opt-in telemetry only, with documented collection and retention; default to none.</li></ol></div>
+  <div class="phase"><h3>Phase E — Product upgrades (P2)</h3><ol><li>Add approved-folder project explorer and safe project metadata discovery.</li><li>Integrate local model status and source-grounded assistant context.</li><li>Add reviewable code diffs and rollback-safe patch application.</li><li>Add approved tasks with timeouts, cancellation, output, and exit status.</li><li>Only then consider a lightweight 3D command center or broader GitHub/MCP features.</li></ol></div>
+
+  <h2>4. Test and release matrix</h2>
+  <table>
+    <thead><tr><th>Area</th><th>Required checks</th><th>Release evidence</th></tr></thead>
+    <tbody>
+      <tr><td>Bridge syntax</td><td>PowerShell 5.1 parser; PowerShell 7 parser when supported</td><td>Zero parser errors, recorded runtime versions</td></tr>
+      <tr><td>Bridge behavior</td><td>Valid/invalid auth, loopback bind, ping, API errors, OPTIONS/origin, shutdown</td><td>Automated smoke-test output and exit codes</td></tr>
+      <tr><td>Frontend</td><td>Fresh state, corrupt state, offline bridge, navigation, chat failure, reconnect</td><td>Browser console clean; visible user-facing errors</td></tr>
+      <tr><td>Browsers</td><td>Stable Edge, Chrome, Firefox on Windows; desktop and mobile-width viewports</td><td>Versioned results; list any browser not actually tested</td></tr>
+      <tr><td>Safety</td><td>Unapproved destructive action, non-admin restricted action, invalid input</td><td>All denied without system state change</td></tr>
+      <tr><td>Public demo</td><td>Network inspection, synthetic data, no machine-control bridge</td><td>Independent demo deployment and rollback verification</td></tr>
+    </tbody>
+  </table>
+
+  <h2>5. Current status and launch decision</h2>
+  <p><strong>Executed in this work:</strong> fixed the PowerShell parse error in <code>Assert-Authorized</code>, removed the duplicate helper, and updated the request handler to call the unified authorization helper. Fixed Ollama response serialization by forcing a non-streaming response; the dashboard returned <code>READY</code> in a live chat test. Windows PowerShell 5.1 parsing is clean. In the integrated Chrome 150 browser on Windows 11, all 12 navigation views loaded; project, process, service, system-stat, terminal, and local-model flows were exercised without page errors.</p>
+  <p><strong>Still required before launch:</strong> full negative/edge-case route coverage, offline and recovery UX review, direct UI testing in additional target browsers (Firefox is not installed in this environment), permission/security hardening, and a separate safe public demo mode.</p>
+  <div class="gate"><strong>Decision:</strong> do not expose the current bridge publicly. Proceed with local verification and P0 fixes; approve a public pilot only after all P0/P1 gates pass using a mock backend.</div>
+  <p class="footer">Plan 1 | Helpyard project | Prepared 17 October 2026 | This plan records requirements and gates; a listed test is not a pass until evidence is captured.</p>
+</body>
+</html>
