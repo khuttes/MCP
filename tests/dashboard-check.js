@@ -5,7 +5,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const dashboardPath = path.join(__dirname, '..', 'pc-control-dashboard.html');
-const bridgePath = path.join(__dirname, '..', 'bridge.ps1');
+const bridgePath = path.join(__dirname, '..', 'bridge.py');
 const html = fs.readFileSync(dashboardPath, 'utf8');
 const bridge = fs.readFileSync(bridgePath, 'utf8');
 const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
@@ -20,6 +20,10 @@ new vm.Script(script, { filename: dashboardPath });
 assert(/key !== 'token'/.test(script), 'Bridge token is being persisted instead of kept in memory.');
 assert(!/cloudKey\s*:/.test(script), 'Cloud API key must not be part of persisted default state.');
 assert(/id="runCmdBtn"[^>]*disabled/.test(html), 'Unrestricted terminal control must remain disabled.');
+assert(/function detectBridgeUrl\(\)/.test(script), 'Dashboard does not detect the bridge URL when served by the bridge.');
+assert(/function bootstrapBridge\(\)/.test(script) && /location\.hash\.slice\(1\)/.test(script), 'Dashboard does not consume the launcher connection code from the URL fragment.');
+assert(/initializeBridge\(\)/.test(script), 'Dashboard does not automatically establish its initial bridge connection.');
+assert(/\/api\/bridge-probe/.test(script), 'Dashboard URL discovery does not verify that the origin is the bridge.');
 
 const pageNav = new Set([...html.matchAll(/data-page="([^"]+)"/g)].map((match) => match[1]));
 const pageSections = new Set([...html.matchAll(/id="page-([^"]+)"/g)].map((match) => match[1]));
@@ -33,7 +37,8 @@ for (const [, id] of script.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)) {
 }
 
 const dashboardRoutes = new Set([...script.matchAll(/\bapi\(['"](\/api\/[^'"]+)['"]/g)].map((match) => match[1]));
-const bridgeRoutes = new Set([...bridge.matchAll(/'(?:GET|POST) (\/api\/[^']+)'/g)].map((match) => match[1]));
+const bridgeRoutes = new Set([...bridge.matchAll(/path == ["'](\/api\/[^"']+)["']/g)].map((match) => match[1]));
+bridgeRoutes.add('/api/bridge-probe');
 for (const route of dashboardRoutes) assert(bridgeRoutes.has(route), `Dashboard route ${route} is not implemented by the bridge.`);
 
 const linkedAssets = [...html.matchAll(/(?:src|href)="([^"]+)"/g)]
