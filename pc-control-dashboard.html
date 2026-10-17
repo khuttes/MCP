@@ -108,7 +108,7 @@
       <section id="page-security" class="page"><div class="grid two"><div class="card"><h3>Security posture</h3><ul class="list" id="securityList"></ul></div><div class="card"><h3>Audit log</h3><ul class="list" id="auditList"></ul></div></div></section>
 
       <section id="page-settings" class="page"><div class="grid two"><div class="card"><h3>Bridge connection</h3><div class="field"><label>Bridge URL</label><input id="bridgeUrl" value="http://127.0.0.1:8787" /></div><div class="field" style="margin-top:12px;"><label>Token</label><input id="bridgeToken" type="password" placeholder="Paste the bridge token" /></div><div class="row" style="margin-top:14px;"><button id="saveBridgeBtn" class="btn primary">Save &amp; connect</button><button id="clearDataBtn" class="btn danger">Reset browser data</button></div></div><div class="card"><h3>How to start</h3><ol class="muted" style="padding-left:18px;line-height:1.8;margin:0;">
-            <li>Open PowerShell as administrator.</li><li>Run <code>powershell -ExecutionPolicy Bypass -File .\bridge.ps1</code>.</li><li>Copy the generated token and paste it here.</li><li>Keep the bridge window open while using the dashboard.</li></ol></div></div></section>
+            <li>Open a regular PowerShell terminal; administrator rights are not needed for normal use.</li><li>Run <code>powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\bridge.ps1</code>.</li><li>Copy the generated URL and token into this page.</li><li>Keep the bridge window open while using the dashboard. Some system actions may require an elevated session.</li></ol></div></div></section>
     </main>
   </div>
 
