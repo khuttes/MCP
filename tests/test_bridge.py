@@ -125,6 +125,16 @@ class BridgeHTTPTests(unittest.TestCase):
         with patch("bridge.call_ollama", return_value={"models": []}):
             self.assertEqual(self.json_request("/api/ollama/tags", token=self.token), (200, {"models": []}))
 
+    def test_stats_query_includes_processor_topology(self) -> None:
+        with patch("bridge.run_powershell_json", return_value={"cpuCores": 8, "cpuThreads": 16, "cpuMaxMHz": 4200}) as query:
+            status, payload = self.json_request("/api/stats", token=self.token)
+        self.assertEqual(status, 200)
+        self.assertEqual(payload, {"cpuCores": 8, "cpuThreads": 16, "cpuMaxMHz": 4200})
+        script = query.call_args.args[0]
+        self.assertIn("NumberOfCores", script)
+        self.assertIn("NumberOfLogicalProcessors", script)
+        self.assertIn("MaxClockSpeed", script)
+
     def test_mutations_require_approval_and_unsafe_routes_remain_disabled(self) -> None:
         cases = [
             ("/api/run", {"command": "must not execute"}, 403),
