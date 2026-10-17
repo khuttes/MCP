@@ -35,6 +35,8 @@ const suggestionKeys = new Set([...script.matchAll(/^\s{6}([a-z]+): \[/gm)].map(
 for (const page of pageNav) assert(suggestionKeys.has(page), `Page ${page} has no contextual safe tip.`);
 assert(/S\.showSuggestions = S\.showSuggestions !== false/.test(script), 'Suggestions preference is not safely defaulted.');
 assert(/accentSelect/.test(html) && /suggestionsToggle/.test(html), 'Appearance customization controls are missing.');
+assert(/select option\{background-color:#d1d5db;color:#111827\}/.test(html), 'Dropdown options must use a non-white background with dark readable text.');
+assert(/select option:checked,select option:hover\{background-color:#b8c2cf;color:#111827\}/.test(html), 'Selected and hovered dropdown options must remain readable.');
 assert(/key !== 'token'/.test(script) && !/cloudKey\s*:/.test(script), 'Appearance preferences must not persist secrets.');
 
 const domIds = new Set([...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]));
