@@ -1,16 +1,21 @@
 ﻿<#
   PC Control Bridge  -  local PowerShell server for the HTML dashboard
   Run:   powershell -ExecutionPolicy Bypass -File .\bridge.ps1
-  The window prints a URL and a TOKEN. Paste both into Dashboard -> Settings.
-  Listens ONLY on 127.0.0.1 (your own computer). Every request needs the token.
+  The window prints a URL and a TOKEN. The URL serves the dashboard and API.
+  Listens ONLY on 127.0.0.1 (your own computer). API requests need the token.
 #>
 param(
   [int]$Port = 8787,
   [string]$Token = '',
-  [string]$OllamaUrl = 'http://127.0.0.1:11434'
+  [string]$OllamaUrl = 'http://127.0.0.1:11434',
+  [switch]$OpenDashboard
 )
 
 $script:MaxRequestBytes = 1048576
+$script:DashboardPath = Join-Path $PSScriptRoot 'pc-control-dashboard.html'
+if (-not (Test-Path -LiteralPath $script:DashboardPath -PathType Leaf)) {
+  throw "Dashboard file not found: $script:DashboardPath"
+}
 
 if (-not $Token) {
   $bytes = New-Object byte[] 16
@@ -46,6 +51,16 @@ function Send-Json($ctx, $obj, [int]$code = 200) {
   $ctx.Response.ContentType = 'application/json; charset=utf-8'
   $ctx.Response.Headers['Cache-Control'] = 'no-store'
   $ctx.Response.OutputStream.Write($b, 0, $b.Length)
+  $ctx.Response.Close()
+}
+
+function Send-Dashboard($ctx) {
+  $bytes = [IO.File]::ReadAllBytes($script:DashboardPath)
+  $ctx.Response.StatusCode = 200
+  $ctx.Response.ContentType = 'text/html; charset=utf-8'
+  $ctx.Response.Headers['Cache-Control'] = 'no-store'
+  $ctx.Response.Headers['X-Content-Type-Options'] = 'nosniff'
+  $ctx.Response.OutputStream.Write($bytes, 0, $bytes.Length)
   $ctx.Response.Close()
 }
 
@@ -224,13 +239,19 @@ try {
   $listener.Prefixes.Add("http://127.0.0.1:$SelectedPort/")
   $listener.Start()
 
+  $dashboardUrl = "http://127.0.0.1:$SelectedPort/pc-control-dashboard.html"
   Write-Host ""
   Write-Host "  PC Control Bridge is running" -ForegroundColor Green
-  Write-Host "  URL   : http://127.0.0.1:$SelectedPort" 
+  Write-Host "  Bridge URL : http://127.0.0.1:$SelectedPort"
+  Write-Host "  Dashboard  : $dashboardUrl"
   Write-Host "  TOKEN : $Token" -ForegroundColor Yellow
   Write-Host "  Admin : $isAdmin"
   Write-Host "  Press Ctrl+C to stop."
   Write-Host ""
+
+  if ($OpenDashboard) {
+    Start-Process $dashboardUrl
+  }
 
   while ($listener.IsListening) {
     $ctx = $listener.GetContext()
@@ -254,6 +275,16 @@ try {
       $res.Headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
 
       if ($req.HttpMethod -eq 'OPTIONS') { $res.StatusCode = 204; $res.Close(); continue }
+      if ($req.HttpMethod -eq 'GET' -and $req.Url.AbsolutePath -eq '/api/bridge-probe') {
+        $res.StatusCode = 204
+        $res.Close()
+        continue
+      }
+
+      if ($req.HttpMethod -eq 'GET' -and $req.Url.AbsolutePath -in @('/', '/pc-control-dashboard.html')) {
+        Send-Dashboard $ctx
+        continue
+      }
 
       try {
         Assert-Authorized $req
