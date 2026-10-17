@@ -1,86 +1,65 @@
 # Helpyard local dashboard
 
-Helpyard is a single-page HTML/CSS/JavaScript dashboard that connects to an optional Windows PowerShell bridge. The bridge provides local system information, explicitly approved named actions, and access to a locally running Ollama service.
+Helpyard is a single-page HTML/CSS/JavaScript dashboard with a local Python bridge for Windows system data and explicitly approved operations. The bridge serves the dashboard and API from one loopback-only HTTP server. Python uses only its standard library; no pip packages or frontend build step are required.
 
-## Start on Windows
+## Start with one double-click
 
-1. Open a regular PowerShell terminal (administrator rights are not needed for normal dashboard use).
-2. From this project folder, run:
+1. Install Python 3.10 or newer for Windows. Enable the Python launcher (`py`) if offered; the launcher can also use a `python` command on `PATH`.
+2. Double-click [`Start-Helpyard.bat`](./Start-Helpyard.bat).
+3. Helpyard starts its minimized bridge console and opens the dashboard in your default browser. Leave the bridge running while you use the dashboard; close its console or press `Ctrl+C` there to stop it.
 
-   ```powershell
-   powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\bridge.ps1
-   ```
+The dashboard is served at `http://127.0.0.1:<selected-port>/pc-control-dashboard.html`. The browser receives a short-lived one-time connection code in the URL fragment; the frontend removes it from the address bar, exchanges it for a bearer token, and keeps that token in memory only. The token is not printed, saved to browser storage, or included in server request logs. If the browser does not open automatically, use the **Dashboard** or **Connection URL** printed in the bridge console.
 
-   The execution-policy bypass applies only to this new PowerShell process. The bridge listens only on `127.0.0.1` and prints its URL and temporary bearer token.
-3. Open `pc-control-dashboard.html` in a current browser. For best browser compatibility, serve the folder on loopback, for example:
+## Start from VS Code or a terminal
 
-   ```powershell
-   python -m http.server 8000 --bind 127.0.0.1
-   ```
+- In VS Code, run **Terminal > Run Task... > Helpyard: Start Bridge**. The task starts the same Python bridge and opens the dashboard.
+- From PowerShell in the project folder, run `py -3 .\bridge.py --open-browser`.
+- For a static UI preview only, open `pc-control-dashboard.html` directly; it will not connect to local system APIs.
 
-   Then browse to `http://127.0.0.1:8000/pc-control-dashboard.html`.
-4. In **Settings**, enter the bridge URL and token printed by the bridge, then select **Save & connect**.
-5. Keep the bridge terminal open while using local system features. Stop it with `Ctrl+C`.
+The bridge checks a short list of localhost ports starting at 8787 and selects the first available port. It runs one instance per project folder. The dashboard discovers and uses the actual selected port.
 
-Some actions require administrator rights and may be rejected when the bridge runs as a standard user. Elevate only when you intentionally need those actions.
+## Troubleshooting
 
-### Start from VS Code
-
-1. Open **Run and Debug** and select **Helpyard: Full Local Development**.
-2. The compound starts the local PowerShell bridge and opens the dashboard in Edge. The bridge selects an available port and prints its URL and temporary token in the PowerShell debug session.
-3. In dashboard **Settings**, enter the exact URL and token printed by the bridge, then choose **Save & connect**.
-4. Stop the compound from VS Code when finished. Do not add the printed token to `launch.json` or any workspace file.
-
-You can also launch **Helpyard: Start Local Bridge** or **Helpyard: Open Dashboard** independently.
-
-### If the dashboard will not connect
-
-- Match the URL and token printed by the **same running bridge**. If the bridge says its preferred port is in use, it switches to another port; update the dashboard URL to the printed URL before connecting.
-- An `HTTP 401` message means the token is missing or does not belong to the bridge at that URL. A failed network request usually means the bridge is no longer running or the URL/port is wrong.
-- The token is kept in memory only. Enter it again after reloading the dashboard, and keep that bridge's terminal or VS Code debug session open.
-- If multiple bridge sessions are open, stop the ones you no longer need with `Ctrl+C` in their own terminals, then start one bridge and use its printed URL/token pair.
+- If the launcher says Python 3.10 or newer is missing, install Python for Windows and ensure either `py -3` or `python` works in a new terminal.
+- Keep the minimized **Helpyard Bridge** console open. Its startup failures and runtime errors are printed there.
+- A `401` means the browser session is missing or the bootstrap code was already consumed. Close the bridge console and start `Start-Helpyard.bat` again to create a fresh session.
+- If a port is occupied, the bridge tries the next configured loopback port automatically.
+- Ollama is optional. Local chat requires Ollama running at `http://127.0.0.1:11434` and at least one installed model.
+- Cloud chat calls the selected provider directly from the browser and requires a provider API key entered for the current session.
 
 ## Security and scope
 
-- The bridge is intended for local workstation use and binds to loopback only. Do not expose its port to a LAN or the public internet.
-- The bearer token is a local access credential. Do not share it or publish it in screenshots, logs, or source control.
-- The dashboard keeps the bridge token in memory only; after reloading the page, paste the current token again in Settings.
-- Arbitrary PowerShell execution through `/api/run` is disabled. Terminal and skill screens are intentionally non-executable until reviewed, bounded named tasks are implemented.
-- MCP process startup is disabled until a reviewed server registry and fixed executable/argument policies exist.
-- Process, service, and high-impact action requests require explicit approval at the bridge API. Do not treat a browser confirmation or bearer token as a substitute for least privilege.
-- Project discovery is limited to the folder containing `bridge.ps1`; it does not crawl the user profile or Desktop.
-- Cloud provider API keys are used directly by the browser for the current session and are not stored in localStorage. Cloud prompts are sent to the selected provider.
-- Ollama is optional. Local AI requires an Ollama service reachable at `http://127.0.0.1:11434` and at least one installed model.
-- A public demo should use simulated data and must not connect to a real workstation-control bridge.
+- The Python bridge binds only to `127.0.0.1`; do not expose it to a LAN or the public internet.
+- The one-time bootstrap code expires after 60 seconds and can be redeemed once from the exact local browser origin. The resulting bearer token remains in JavaScript memory only.
+- Arbitrary PowerShell execution through `/api/run` and MCP process startup remain disabled. Terminal and skill screens are intentionally non-executable.
+- Process, service, Claude configuration, and high-impact action requests require explicit API approval. A browser confirmation is not a substitute for least privilege.
+- Windows operations use fixed PowerShell scripts launched as subprocesses. Browser input is validated and is not passed as an arbitrary script.
+- Project discovery is limited to this project folder and immediate Git repositories.
+- Cloud provider API keys are not persisted in browser storage; requests are sent to the selected provider.
+- A public demo should use simulated data, not a real workstation-control bridge.
+- `bridge.ps1` remains available as a legacy/manual alternative, but the one-click launcher, VS Code task, and current dashboard bootstrap flow use `bridge.py`.
 
 ## Validation
 
-The bridge can be syntax-checked with the Windows PowerShell parser:
+Run from the project folder:
 
 ```powershell
-$errors = $null
-[System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path .\bridge.ps1), [ref]$null, [ref]$errors) | Out-Null
-$errors
+py -3 -m unittest discover -s tests -p test_bridge.py -v
+node .\tests\dashboard-check.js
 ```
 
-The dashboard's inline JavaScript can be checked with Node.js. Runtime checks should include bridge authentication (valid and invalid tokens), dashboard navigation, offline/error states, and the target browsers actually supported by the release. Do not describe a browser or environment as tested unless it was run.
+The Python unit tests cover dashboard serving, bootstrap expiry/replay protections, authentication, route behavior, approval gates, malformed/oversized input, and keeping ping responsive during a simulated slow Ollama chat. They stub Windows-specific and Ollama calls where appropriate; they do not mutate processes, services, configuration, or power state.
 
-Run the bridge smoke checks from the project folder in Windows PowerShell:
+The legacy PowerShell bridge has a separate smoke suite:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\bridge-smoke.ps1
 ```
 
-The smoke checks use a temporary random token and a local test bridge process. They cover valid and invalid authentication, disabled unsafe operations, approval gates, malformed JSON, and unknown routes. They do not exercise operations that mutate Windows services, processes, configuration, or power state.
-
-Check the dashboard script syntax and its navigation, DOM, and API route connections with Node.js:
-
-```powershell
-node .\tests\dashboard-check.js
-```
+That suite tests only `bridge.ps1`. Use the Python unit tests for the default launcher and runtime.
 
 ## Current implementation limits
 
-- This is still a local prototype, not a public-release build.
+- This is a local prototype, not a public-release build.
 - Persistent audit history, a reviewed MCP server registry, project-folder approval, and named terminal tasks are not implemented.
-- Cross-browser, accessibility, and release-security qualification must be performed and recorded separately.
+- Cloud provider access requires the user's own key. Cross-browser, accessibility, and release-security qualification must be performed and recorded separately.
