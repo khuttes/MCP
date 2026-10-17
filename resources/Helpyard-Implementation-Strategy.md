@@ -28,7 +28,7 @@ The implemented redesign modernizes the Overview, makes performance charts clear
 - CPU and memory history is a short, in-memory window collected at five-second intervals while Overview is open. It is not persistent history or a long-term capacity report.
 - Process-list CPU is cumulative process CPU time, not current percentage utilization. The UI now identifies this value and its seconds unit instead of calling it CPU utilization.
 - Local AI connects to an optional configured Ollama service. Cloud AI makes direct provider requests from the browser and warns that prompts leave the device.
-- The Terminal is intentionally disabled; MCP startup is disabled; Skills remain guidance-only examples; and the Security page's audit content is descriptive rather than a persistent event log.
+- Arbitrary Terminal execution and MCP startup remain disabled. The Skills page has fixed, allowlisted read-only checks plus locally saved custom guidance. Custom guidance is never executed or automatically added to AI prompts. The Security page's audit content is descriptive rather than a persistent event log.
 - Python tests stub system/AI operations; passing them does not prove real Windows operations or provider availability.
 
 ### Security and usability constraints to preserve
@@ -57,6 +57,15 @@ The existing Python 3.10+ standard-library bridge and browser-native HTML/CSS/Ja
 
 ## 3. Implemented design changes
 
+### Skills Manager (initial implementation)
+
+- Added 13 built-in local diagnostics with fixed backend operations for network addresses, memory, disks, installed apps, listening ports, startup entries, Defender, Wi-Fi, GPU, battery, Windows updates, developer-tool versions, and Ollama models.
+- Added authenticated catalog, create, update, delete, pin, and built-in-run operations. Built-in labels and guidance are editable, but run behavior remains bound to the backend's fixed identifier allowlist.
+- Custom skills are persistent declarative guidance only and cannot be run. No skill is automatically added to AI prompts or granted permissions.
+- Stored schema-version-2 Skills JSON under the current user's profile with validation, a 64 MiB limit, thread/process-coordinated writes, atomic replacement, and timestamped backups.
+- Invalid or unsupported files are reported and preserved; the bridge rejects symbolic-link Skills data and lock files.
+- Import/export, tags, version snapshots/rollback, and backup retention controls remain future work.
+
 ### Overview and visualization
 
 - Replaced the original metric row with a clear responsive system overview containing processor activity, memory use, uptime, and process count.
@@ -71,7 +80,7 @@ The existing Python 3.10+ standard-library bridge and browser-native HTML/CSS/Ja
 
 - Expanded Local AI into a service-status panel, model selector/inventory, endpoint-configuration note, and chat area.
 - Distinguished an unavailable Ollama endpoint from a responsive server with no installed models.
-- Replaced generic skill placeholders with clearly labeled, non-executable read-only guidance cards linked to the relevant application sections.
+- The Skills page now presents built-in checks and saved custom guidance separately; only built-ins map to fixed read-only operations in the bridge.
 - Added a persistent Suggestions shortcut that opens the active page's contextual tip, including when the tips preference was previously disabled.
 - Kept the existing theme, accent, and show/hide-tip preferences and did not change the secret-storage policy.
 
