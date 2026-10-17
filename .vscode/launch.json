@@ -5,18 +5,20 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Helpyard: Open Dashboard File",
+            "name": "Helpyard: Preview Static Dashboard (No API)",
             "type": "msedge",
             "request": "launch",
             "file": "${workspaceFolder}\\pc-control-dashboard.html",
             "webRoot": "${workspaceFolder}"
         },
         {
-            "name": "PowerShell: Launch Current File",
+            "name": "Helpyard: Launch Legacy PowerShell Bridge",
             "type": "PowerShell",
             "request": "launch",
-            "script": "${file}",
-            "args": []
+            "script": "${workspaceFolder}\\bridge.ps1",
+            "args": [
+                "-OpenDashboard"
+            ]
         }
     ]
 }
