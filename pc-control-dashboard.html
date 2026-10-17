@@ -1,469 +1,164 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PC Control Panel</title>
-<style>
-:root{
-  --bg:#0b0f17;--side:#0f1522;--card:#141b2b;--card2:#192238;--line:#232d45;--txt:#e6ebf5;--mut:#8a97b4;
-  --a:#4cc9f0;--a2:#7b61ff;--ok:#3ddc97;--warn:#ffb84d;--bad:#ff5d73;--track:#232d45;
-  --r:14px;--shadow:0 8px 30px rgba(0,0,0,.35);
-}
-[data-theme=light]{
-  --bg:#f2f5fb;--side:#fff;--card:#fff;--card2:#f5f7fc;--line:#dfe5f1;--txt:#18203a;--mut:#667394;--track:#e3e8f3;--shadow:0 6px 20px rgba(30,50,100,.08);
-}
-*{box-sizing:border-box}
-html,body{height:100%;margin:0}
-body{background:var(--bg);color:var(--txt);font:14px/1.5 "Segoe UI",system-ui,-apple-system,sans-serif}
-.app{display:grid;grid-template-columns:240px 1fr;height:100vh}
-aside{background:var(--side);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:18px 14px;overflow:auto}
-.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px;padding:4px 8px 18px}
-.logo{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--a),var(--a2));display:grid;place-items:center;color:#fff;font-size:18px}
-nav button{display:flex;align-items:center;gap:12px;width:100%;background:none;border:0;color:var(--mut);padding:10px 12px;border-radius:10px;font:inherit;cursor:pointer;text-align:left;margin-bottom:2px}
-nav button:hover{background:var(--card2);color:var(--txt)}
-nav button.on{background:linear-gradient(90deg,rgba(76,201,240,.18),rgba(123,97,255,.12));color:var(--txt);box-shadow:inset 3px 0 0 var(--a)}
-nav .sep{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:14px 12px 6px}
-.conn{margin-top:auto;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px;font-size:12px}
-.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--bad);margin-right:6px}
-.dot.ok{background:var(--ok);box-shadow:0 0 8px var(--ok)}
-main{overflow:auto;padding:24px 28px 40px}
-header.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:12px;flex-wrap:wrap}
-header.top h1{margin:0;font-size:22px}
-header.top p{margin:2px 0 0;color:var(--mut)}
-.badge{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:600;background:var(--card2);border:1px solid var(--line);color:var(--mut)}
-.badge.ok{color:var(--ok);border-color:rgba(61,220,151,.4)}.badge.bad{color:var(--bad);border-color:rgba(255,93,115,.4)}.badge.warn{color:var(--warn);border-color:rgba(255,184,77,.4)}
-.page{display:none}.page.on{display:block;animation:fade .25s}
-@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1}}
-.grid{display:grid;gap:16px}
-.g4{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
-.g2{grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}
-.g3{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
-.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:var(--shadow)}
-.card h3{margin:0 0 12px;font-size:14px;color:var(--mut);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
-.stat{display:flex;align-items:center;gap:16px}
-.stat .big{font-size:26px;font-weight:700}
-.stat small{color:var(--mut)}
-.ring{width:84px;height:84px;border-radius:50%;background:conic-gradient(var(--a) calc(var(--v)*1%),var(--track) 0);display:grid;place-items:center;position:relative;flex:none}
-.ring::before{content:'';position:absolute;inset:9px;background:var(--card);border-radius:50%}
-.ring span{position:relative;font-weight:700}
-.bar{height:8px;background:var(--track);border-radius:99px;overflow:hidden;margin:6px 0 12px}
-.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--a),var(--a2));border-radius:99px}
-.bar i.hot{background:linear-gradient(90deg,var(--warn),var(--bad))}
-canvas{width:100%;height:170px;display:block}
-.btn{background:var(--card2);color:var(--txt);border:1px solid var(--line);padding:8px 14px;border-radius:10px;cursor:pointer;font:inherit}
-.btn:hover{border-color:var(--a)}
-.btn.primary{background:linear-gradient(135deg,var(--a),var(--a2));border:0;color:#fff;font-weight:600}
-.btn.danger{color:var(--bad)}.btn.danger:hover{border-color:var(--bad)}
-.btn.sm{padding:4px 10px;font-size:12px;border-radius:8px}
-.btn:disabled{opacity:.5;cursor:not-allowed}
-input,select,textarea{background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font:inherit;width:100%}
-textarea{resize:vertical;font-family:Consolas,"Cascadia Mono",monospace;font-size:13px}
-input:focus,select:focus,textarea:focus{outline:0;border-color:var(--a)}
-label{display:block;font-size:12px;color:var(--mut);margin:10px 0 4px}
-.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.row>.grow{flex:1;min-width:160px}
-table{width:100%;border-collapse:collapse}
-th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);font-size:13px}
-th{color:var(--mut);font-weight:600;position:sticky;top:0;background:var(--card)}
-.scroll{max-height:62vh;overflow:auto;border-radius:10px}
-.actions{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
-.act{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:16px 10px;text-align:center;cursor:pointer;color:var(--txt);font:inherit}
-.act:hover{border-color:var(--a);transform:translateY(-2px)}
-.act b{display:block;font-size:26px;margin-bottom:4px}
-.act.danger:hover{border-color:var(--bad)}
-pre.out{background:#070a11;color:#c9f5d4;border:1px solid var(--line);border-radius:10px;padding:14px;min-height:160px;max-height:50vh;overflow:auto;white-space:pre-wrap;word-break:break-word;font:13px/1.45 Consolas,"Cascadia Mono",monospace;margin:10px 0 0}
-.chat{display:flex;flex-direction:column;height:calc(100vh - 290px);min-height:360px}
-.msgs{flex:1;overflow:auto;padding:6px;display:flex;flex-direction:column;gap:10px}
-.msg{max-width:82%;padding:10px 14px;border-radius:14px;white-space:pre-wrap;word-break:break-word}
-.msg.user{align-self:flex-end;background:linear-gradient(135deg,var(--a),var(--a2));color:#fff}
-.msg.assistant{align-self:flex-start;background:var(--card2);border:1px solid var(--line)}
-.msg.err{border-color:var(--bad);color:var(--bad)}
-.composer{display:flex;gap:10px;margin-top:10px;align-items:flex-end}
-.composer textarea{flex:1}
-.skill h4,.mcp h4{margin:0 0 4px}
-.skill p,.mcp p{margin:0 0 10px;color:var(--mut);font-size:13px}
-code.k{background:var(--card2);padding:1px 6px;border-radius:6px;font-size:12px}
-.note{background:rgba(255,184,77,.08);border:1px solid rgba(255,184,77,.35);border-radius:10px;padding:10px 14px;color:var(--warn);font-size:13px;margin-bottom:14px}
-.empty{color:var(--mut);text-align:center;padding:30px}
-#toast{position:fixed;right:20px;bottom:20px;display:flex;flex-direction:column;gap:8px;z-index:50}
-.t{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--a);padding:10px 16px;border-radius:10px;box-shadow:var(--shadow);max-width:380px}
-.t.err{border-left-color:var(--bad)}.t.ok{border-left-color:var(--ok)}
-@media(max-width:820px){.app{grid-template-columns:1fr}aside{flex-direction:row;overflow:auto;padding:8px}.brand,.conn,nav .sep{display:none}nav{display:flex}nav button{white-space:nowrap;width:auto}main{padding:16px}}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Helpyard | PC Control Panel</title>
+  <style>
+    :root{
+      --bg:#07111d;--bg2:#0d1b2a;--panel:rgba(15,23,35,.9);--panel-alt:#16263a;--line:rgba(148,163,184,.18);--text:#e5edf9;--muted:#90a3bd;--cyan:#4cc9f0;--violet:#7c7bff;--green:#3ddc97;--amber:#ffb84d;--red:#ff5d73;--shadow:0 18px 50px rgba(3,11,20,.45);--radius:18px;
+    }
+    *{box-sizing:border-box} html,body{height:100%;margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:radial-gradient(circle at top, rgba(76,201,240,.12), transparent 35%), linear-gradient(180deg, var(--bg), var(--bg2)); color:var(--text)} body{min-height:100vh} a{color:inherit;text-decoration:none} button,input,select,textarea{font:inherit} .shell{display:grid;grid-template-columns:250px minmax(0,1fr);min-height:100vh}.sidebar{background:rgba(7,17,29,.95);border-right:1px solid var(--line);padding:18px 14px 20px;position:sticky;top:0;height:100vh;overflow:auto}.brand{display:flex;align-items:center;gap:12px;padding:8px 10px 18px;border-bottom:1px solid var(--line);margin-bottom:16px}.logo{width:34px;height:34px;border-radius:12px;background:linear-gradient(135deg,var(--cyan),var(--violet));display:grid;place-items:center;font-weight:700;box-shadow:0 12px 35px rgba(76,201,240,.35)}.brand-text{line-height:1.1}.brand-text strong{display:block;font-size:16px}.brand-text small{color:var(--muted);letter-spacing:.12em;font-size:10px;text-transform:uppercase}.nav-section{margin:16px 0 8px;padding:0 10px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}.nav button{width:100%;text-align:left;padding:10px 12px;border:1px solid transparent;border-radius:12px;background:transparent;color:var(--muted);cursor:pointer;margin:2px 0;display:flex;align-items:center;gap:10px;font-weight:600}.nav button:hover{background:rgba(255,255,255,.02);border-color:var(--line);color:var(--text)}.nav button.active{color:var(--text);background:linear-gradient(90deg, rgba(76,201,240,.16), rgba(124,123,255,.08));border-color:rgba(76,201,240,.18);box-shadow:inset 0 0 0 1px rgba(76,201,240,.08)}.status-box{margin-top:18px;background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:14px;padding:12px;color:var(--muted)}.dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--red);vertical-align:middle;box-shadow:0 0 12px rgba(255,93,115,.55)}.dot.ok{background:var(--green);box-shadow:0 0 12px rgba(61,220,151,.65)}.dot.warn{background:var(--amber);box-shadow:0 0 12px rgba(255,184,77,.65)}.main{padding:20px 26px 28px}.topbar{display:flex;justify-content:space-between;align-items:center;gap:16px;padding-bottom:18px;border-bottom:1px solid var(--line);margin-bottom:18px}.title-wrap h1{margin:0;font-size:clamp(1.8rem,2.5vw,2.8rem)}.title-wrap p{margin:5px 0 0;color:var(--muted)}.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.badge{display:inline-flex;align-items:center;gap:8px;background:rgba(124,123,255,.08);border:1px solid rgba(124,123,255,.22);border-radius:999px;padding:7px 12px;color:#dfe7ff;font-size:12px;font-weight:600}.badge.ok{background:rgba(61,220,151,.08);border-color:rgba(61,220,151,.2);color:#cbf4dd}.badge.warn{background:rgba(255,184,77,.08);border-color:rgba(255,184,77,.2);color:#ffe3b8}.badge.bad{background:rgba(255,93,115,.08);border-color:rgba(255,93,115,.2);color:#ffc0cb}.btn{border:1px solid var(--line);background:rgba(255,255,255,.02);color:var(--text);border-radius:10px;padding:9px 12px;cursor:pointer;transition:.2s ease}.btn:hover{transform:translateY(-1px);border-color:rgba(76,201,240,.35)}.btn.primary{background:linear-gradient(135deg,var(--cyan),var(--violet));color:#051018;border:none;font-weight:700}.btn.danger{border-color:rgba(255,93,115,.22);color:#ffc9d4}.btn.sm{padding:7px 10px;border-radius:8px;font-size:12px}.page{display:none}.page.active{display:block}.grid{display:grid;gap:16px}.grid.two{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}.grid.three{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}.grid.four{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}.card{background:linear-gradient(180deg, rgba(20,31,47,.8), rgba(17,27,42,.9));border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 18px}.card h3{margin:0 0 14px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}.metric{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:88px}.ring{--p:0;position:relative;width:74px;height:74px;border-radius:50%;border:10px solid rgba(255,255,255,.05);background:conic-gradient(var(--cyan) calc(var(--p) * 1%), rgba(255,255,255,.05) 0);display:grid;place-items:center;flex-shrink:0}.ring::before{content:'';position:absolute;inset:8px;background:rgba(9,16,25,.9);border-radius:50%;border:1px solid var(--line)}.ring span{position:relative;z-index:1;font-weight:700}.big{font-size:2rem;font-weight:700}.muted{color:var(--muted)}.progress{width:100%;height:10px;border-radius:999px;overflow:hidden;background:rgba(255,255,255,.06)}.progress>span{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),var(--violet));border-radius:inherit}.stack{display:flex;flex-direction:column;gap:12px}.list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px}.list li{display:flex;justify-content:space-between;gap:16px;padding:8px 0;border-bottom:1px solid var(--line)}.list li:last-child{border-bottom:none}.panel-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}.rows{display:grid;gap:12px}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.grow{flex:1}.field{display:grid;gap:6px}.field label{color:var(--muted);font-size:12px}input,select,textarea{width:100%;background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:10px;color:var(--text);padding:10px 12px}textarea{resize:vertical;min-height:110px}.chat{display:flex;flex-direction:column;min-height:320px}.messages{flex:1;background:rgba(4,10,18,.42);border:1px solid var(--line);border-radius:14px;padding:12px;overflow:auto;display:flex;flex-direction:column;gap:10px}.message{max-width:82%;padding:10px 12px;border-radius:14px;white-space:pre-wrap;word-break:break-word}.message.user{margin-left:auto;background:linear-gradient(135deg,var(--cyan),var(--violet));color:#07131d}.message.bot{background:rgba(255,255,255,.03);border:1px solid var(--line)}.composer{display:flex;gap:10px;margin-top:12px}.composer textarea{flex:1;min-height:52px}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse}th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left}th{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em}pre.output{margin:0;background:rgba(4,10,18,.55);border:1px solid var(--line);border-radius:12px;min-height:180px;max-height:60vh;overflow:auto;padding:14px;white-space:pre-wrap}.pill{display:inline-block;border-radius:999px;padding:4px 10px;border:1px solid var(--line);background:rgba(255,255,255,.02);font-size:11px}.pill.ok{color:var(--green);border-color:rgba(61,220,151,.25)}.pill.warn{color:var(--amber);border-color:rgba(255,184,77,.28)}.pill.bad{color:var(--red);border-color:rgba(255,93,115,.25)}.project-card,.tool-card{background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:14px;padding:14px}.tool-card h4,.project-card h4{margin:0 0 8px}.tool-card p,.project-card p{margin:0 0 10px;color:var(--muted)}.actions{display:flex;gap:8px;flex-wrap:wrap}@media (max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;border-right:none;border-bottom:1px solid var(--line)}}
+  </style>
 </head>
 <body>
-<div class="app">
-  <aside>
-    <div class="brand"><div class="logo">⚡</div>PC Control</div>
-    <nav id="nav">
-      <div class="sep">System</div>
-      <button data-p="overview" class="on">📊 Overview</button>
-      <button data-p="processes">🧩 Processes</button>
-      <button data-p="services">🛠️ Services</button>
-      <button data-p="actions">🎛️ Quick Actions</button>
-      <button data-p="terminal">💻 PowerShell</button>
-      <div class="sep">AI &amp; Tools</div>
-      <button data-p="local">🧠 Local AI</button>
-      <button data-p="cloud">☁️ Cloud AI</button>
-      <button data-p="mcp">🔌 MCP Servers</button>
-      <button data-p="skills">🎯 Skills</button>
-      <div class="sep">App</div>
-      <button data-p="settings">⚙️ Settings</button>
-    </nav>
-    <div class="conn" id="conn"><span class="dot"></span>Not connected</div>
-  </aside>
-
-  <main>
-    <header class="top">
-      <div><h1 id="title">Overview</h1><p id="sub">Live status of your computer</p></div>
-      <div class="row"><span class="badge" id="adminBadge">–</span><button class="btn sm" id="themeBtn">🌓 Theme</button></div>
-    </header>
-
-    <!-- OVERVIEW -->
-    <section class="page on" id="p-overview">
-      <div class="grid g4">
-        <div class="card stat"><div class="ring" id="rCpu" style="--v:0"><span>0%</span></div><div><div class="big">CPU</div><small id="cpuName">–</small></div></div>
-        <div class="card stat"><div class="ring" id="rRam" style="--v:0"><span>0%</span></div><div><div class="big">Memory</div><small id="ramTxt">–</small></div></div>
-        <div class="card"><h3>Uptime</h3><div class="big" id="uptime" style="font-size:26px;font-weight:700">–</div><small id="osName" style="color:var(--mut)">–</small></div>
-        <div class="card"><h3>Processes</h3><div class="big" id="procCount" style="font-size:26px;font-weight:700">–</div><small id="hostName" style="color:var(--mut)">–</small></div>
-      </div>
-      <div class="grid g2" style="margin-top:16px">
-        <div class="card"><h3>CPU &amp; memory history</h3><canvas id="hist"></canvas>
-          <div class="row" style="margin-top:8px;font-size:12px;color:var(--mut)"><span><span class="dot" style="background:var(--a)"></span>CPU</span><span><span class="dot" style="background:var(--a2)"></span>Memory</span></div></div>
-        <div class="card"><h3>Disks</h3><div id="disks"><div class="empty">Waiting for data…</div></div></div>
-      </div>
-    </section>
-
-    <!-- PROCESSES -->
-    <section class="page" id="p-processes">
-      <div class="card">
-        <div class="row" style="margin-bottom:12px"><input class="grow" id="procFilter" placeholder="Filter by name…"><button class="btn" id="procRefresh">↻ Refresh</button></div>
-        <div class="scroll"><table><thead><tr><th>Name</th><th>PID</th><th>CPU s</th><th>Memory MB</th><th></th></tr></thead><tbody id="procBody"></tbody></table></div>
-      </div>
-    </section>
-
-    <!-- SERVICES -->
-    <section class="page" id="p-services">
-      <div class="card">
-        <div class="row" style="margin-bottom:12px">
-          <input class="grow" id="svcFilter" placeholder="Filter services…">
-          <select id="svcStatus" style="width:150px"><option value="">All</option><option>Running</option><option>Stopped</option></select>
-          <button class="btn" id="svcRefresh">↻ Refresh</button>
-        </div>
-        <div class="scroll"><table><thead><tr><th>Name</th><th>Display name</th><th>Status</th><th>Startup</th><th></th></tr></thead><tbody id="svcBody"></tbody></table></div>
-      </div>
-    </section>
-
-    <!-- ACTIONS -->
-    <section class="page" id="p-actions">
-      <div class="note">Shutdown and restart wait 30 seconds so you can press <b>Cancel shutdown</b>.</div>
-      <div class="card"><h3>Power</h3><div class="actions" id="actPower"></div></div>
-      <div class="card" style="margin-top:16px"><h3>Maintenance</h3><div class="actions" id="actMaint"></div></div>
-      <div class="card" style="margin-top:16px"><h3>Open tools</h3><div class="actions" id="actTools"></div></div>
-    </section>
-
-    <!-- TERMINAL -->
-    <section class="page" id="p-terminal">
-      <div class="card">
-        <div class="note">Commands run with the same rights as the bridge window (Administrator if you started it that way). Only run commands you understand.</div>
-        <textarea id="cmd" rows="5" placeholder="Get-Process | Sort CPU -Desc | Select -First 10"></textarea>
-        <div class="row" style="margin-top:10px"><button class="btn primary" id="runCmd">▶ Run (Ctrl+Enter)</button><button class="btn" id="clearOut">Clear</button><span class="badge" id="cmdState"></span></div>
-        <pre class="out" id="cmdOut">Output appears here…</pre>
-      </div>
-    </section>
-
-    <!-- LOCAL AI -->
-    <section class="page" id="p-local">
-      <div class="card">
-        <div class="row"><label style="margin:0">Model</label><select id="ollamaModel" style="width:260px"></select><button class="btn" id="ollamaRefresh">↻ Reload models</button><span class="badge" id="ollamaState">Ollama</span></div>
-        <div class="chat" id="localChat" style="margin-top:12px"></div>
-      </div>
-    </section>
-
-    <!-- CLOUD AI -->
-    <section class="page" id="p-cloud">
-      <div class="card">
-        <div class="row">
-          <div><label>Provider</label><select id="cProv" style="width:180px"><option value="anthropic">Claude (Anthropic)</option><option value="openai">OpenAI</option><option value="gemini">Google Gemini</option></select></div>
-          <div class="grow"><label>API key</label><input id="cKey" type="password" placeholder="Paste API key (stored only in this browser)"></div>
-          <div class="grow"><label>Model</label><input id="cModel"></div>
-        </div>
-        <div class="chat" id="cloudChat" style="margin-top:12px"></div>
-      </div>
-    </section>
-
-    <!-- MCP -->
-    <section class="page" id="p-mcp">
-      <div class="note">Start/Stop here launches a server in the background to test that it runs. For real use, click <b>Save to Claude Desktop config</b> and restart Claude Desktop so it connects to the servers itself.</div>
-      <div class="row" style="margin-bottom:14px">
-        <select id="mcpPreset" style="width:240px"></select><button class="btn" id="mcpAddPreset">+ Add preset</button><button class="btn" id="mcpAddCustom">+ Custom server</button>
-        <span style="flex:1"></span><button class="btn" id="mcpLoadCfg">⬇ Load from Claude config</button><button class="btn primary" id="mcpSaveCfg">💾 Save to Claude Desktop config</button>
-      </div>
-      <div class="grid g3" id="mcpList"></div>
-      <div class="card" style="margin-top:16px"><h3>Generated config (mcpServers)</h3><textarea id="mcpJson" rows="12" readonly></textarea></div>
-    </section>
-
-    <!-- SKILLS -->
-    <section class="page" id="p-skills">
-      <div class="row" style="margin-bottom:14px"><input class="grow" id="skFilter" placeholder="Search skills…"><button class="btn primary" id="skNew">+ New skill</button><button class="btn" id="skExport">Export</button><button class="btn" id="skImport">Import</button></div>
-      <div class="grid g3" id="skList"></div>
-      <div class="card" style="margin-top:16px"><h3 id="skOutTitle">Output</h3><pre class="out" id="skOut">Run a skill to see its result.</pre></div>
-    </section>
-
-    <!-- SETTINGS -->
-    <section class="page" id="p-settings">
-      <div class="grid g2">
-        <div class="card"><h3>Bridge connection</h3>
-          <label>Bridge URL</label><input id="sUrl">
-          <label>Token (shown in the PowerShell window)</label><input id="sToken" type="password">
-          <div class="row" style="margin-top:14px"><button class="btn primary" id="sSave">Save &amp; connect</button><span class="badge" id="sState"></span></div>
-        </div>
-        <div class="card"><h3>How to start</h3>
-          <ol style="margin:0;padding-left:18px;color:var(--mut)">
-            <li>Right-click PowerShell → <b>Run as administrator</b>.</li>
-            <li>Run <code class="k">powershell -ExecutionPolicy Bypass -File .\bridge.ps1</code></li>
-            <li>Copy the TOKEN it prints and paste it here.</li>
-            <li>Keep the window open while using the dashboard.</li>
-          </ol>
-          <div class="row" style="margin-top:14px"><button class="btn danger" id="sClear">Clear all saved data</button></div>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo">H</div>
+        <div class="brand-text">
+          <strong>Helpyard</strong>
+          <small>Cyber lab</small>
         </div>
       </div>
-    </section>
-  </main>
-</div>
-<div id="toast"></div>
-<input type="file" id="fileIn" accept=".json" hidden>
+      <nav class="nav">
+        <div class="nav-section">System</div>
+        <button class="active" data-page="overview">📊 Overview</button>
+        <button data-page="projects">🗂️ Projects</button>
+        <button data-page="workbench">🧠 Workbench</button>
+        <button data-page="processes">🧩 Processes</button>
+        <button data-page="services">🛠️ Services</button>
+        <button data-page="terminal">💻 Terminal</button>
+        <div class="nav-section">AI</div>
+        <button data-page="local">🧪 Local AI</button>
+        <button data-page="cloud">☁️ Cloud AI</button>
+        <button data-page="mcp">🔌 MCP</button>
+        <button data-page="skills">🎯 Skills</button>
+        <div class="nav-section">Security</div>
+        <button data-page="security">🛡️ Security</button>
+        <div class="nav-section">Admin</div>
+        <button data-page="settings">⚙️ Settings</button>
+      </nav>
+      <div class="status-box">
+        <div class="row" style="margin-bottom:8px;"><span id="sidebarStatus" class="dot"></span><strong id="sidebarState">Offline</strong></div>
+        <div id="sidebarHost" class="muted">Bridge disconnected</div>
+      </div>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <div class="title-wrap">
+          <h1 id="pageTitle">Overview</h1>
+          <p id="pageSubtitle">Local workstation status and AI controls</p>
+        </div>
+        <div class="toolbar">
+          <span id="adminBadge" class="badge">Status</span>
+          <button id="themeToggle" class="btn">🌓 Theme</button>
+        </div>
+      </header>
 
-<script>
-const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      <section id="page-overview" class="page active">
+        <div class="grid four">
+          <div class="card"><h3>CPU</h3><div class="metric"><div class="ring" id="ringCpu" style="--p:0"><span id="cpuValue">0%</span></div><div><div class="muted" id="cpuName">Waiting…</div><div class="big" id="cpuLoad">0%</div></div></div></div>
+          <div class="card"><h3>Memory</h3><div class="metric"><div class="ring" id="ringRam" style="--p:0"><span id="ramValue">0%</span></div><div><div class="muted" id="ramName">Waiting…</div><div class="big" id="ramSummary">0 GB</div></div></div></div>
+          <div class="card"><h3>Uptime</h3><div class="big" id="uptimeValue">—</div><div class="muted" id="uptimeMeta">System uptime</div></div>
+          <div class="card"><h3>Processes</h3><div class="big" id="procCount">—</div><div class="muted" id="hostMeta">Machine state</div></div>
+        </div>
+        <div class="grid two" style="margin-top:16px;">
+          <div class="card"><div class="panel-title"><h3>CPU &amp; memory history</h3></div><canvas id="chart" width="600" height="200" style="width:100%;height:200px;display:block;border-radius:12px;background:rgba(4,10,18,.28);border:1px solid var(--line);"></canvas></div>
+          <div class="card"><h3>Disks</h3><div id="diskList" class="stack"></div></div>
+        </div>
+        <div class="grid three" style="margin-top:16px;">
+          <div class="card"><h3>Local AI</h3><div id="localSummary" class="muted">Checking Ollama…</div><div class="rows" id="localModelList" style="margin-top:12px;"></div></div>
+          <div class="card"><h3>Git &amp; tooling</h3><ul class="list" id="toolList"></ul></div>
+          <div class="card"><h3>Recent actions</h3><ul class="list" id="actionList"></ul></div>
+        </div>
+      </section>
 
-/* ---------- state ---------- */
-const DEF={url:'http://127.0.0.1:8787',token:'',theme:'dark',ollamaModel:'',
-  cloud:{provider:'anthropic',keys:{anthropic:'',openai:'',gemini:''},models:{anthropic:'claude-sonnet-5-5',openai:'gpt-4o',gemini:'gemini-2.0-flash'}},
-  skills:null,mcp:null};
-let S; try{S=Object.assign({},DEF,JSON.parse(localStorage.getItem('pcc')||'{}'))}catch{S={...DEF}}
-const save=()=>localStorage.setItem('pcc',JSON.stringify(S));
-document.documentElement.dataset.theme=S.theme;
+      <section id="page-projects" class="page">
+        <div class="card"><div class="panel-title"><h3>Workspace projects</h3><button class="btn sm" id="refreshProjectsBtn">↻ Refresh</button></div><div id="projectsGrid" class="grid three"></div></div>
+      </section>
 
-function toast(msg,type=''){const d=document.createElement('div');d.className='t '+type;d.textContent=msg;$('#toast').appendChild(d);setTimeout(()=>d.remove(),4200)}
+      <section id="page-workbench" class="page">
+        <div class="grid two">
+          <div class="card"><h3>AI workbench</h3><div class="field"><label>Context</label><input id="wbContext" placeholder="Project or task name" value="Local workstation" /></div><div class="field" style="margin-top:12px;"><label>System instructions</label><textarea id="wbSystem">Act as a careful local engineering assistant. Prefer evidence, safe actions, and explicit approval for anything that changes the system.</textarea></div><div class="row" style="margin-top:12px;"><button id="wbSave" class="btn primary">Save</button><button id="wbReset" class="btn">Reset</button></div></div>
+          <div class="card"><h3>Ready actions</h3><div class="rows" id="actionCards"></div></div>
+        </div>
+      </section>
 
-/* ---------- bridge API ---------- */
-async function api(path,body,method){
-  if(!S.token) throw new Error('Open Settings and paste your bridge token first');
-  const r=await fetch(S.url.replace(/\/$/,'')+path,{method:method||(body?'POST':'GET'),
-    headers:{'Authorization':'Bearer '+S.token,'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
-  let d=null;try{d=await r.json()}catch{}
-  if(!r.ok) throw new Error((d&&d.error)||('HTTP '+r.status));
-  return d;
-}
-let connected=false,isAdmin=false;
-async function ping(){
-  try{const d=await api('/api/ping');connected=true;isAdmin=d.admin;
-    $('#conn').innerHTML=`<span class="dot ok"></span>Connected<br><span style="color:var(--mut)">${esc(d.host)} · ${esc(d.user)}</span>`;
-    const b=$('#adminBadge');b.textContent=isAdmin?'Administrator':'Standard user';b.className='badge '+(isAdmin?'ok':'warn');
-  }catch(e){connected=false;$('#conn').innerHTML=`<span class="dot"></span>Not connected`;const b=$('#adminBadge');b.textContent='Offline';b.className='badge bad'}
-  return connected;
-}
+      <section id="page-processes" class="page">
+        <div class="card"><div class="panel-title"><h3>Process monitor</h3><div class="row"><input id="procFilter" placeholder="Filter process names" style="width:220px;" /><button class="btn sm" id="refreshProcBtn">↻ Refresh</button></div></div><div class="table-wrap"><table><thead><tr><th>Name</th><th>PID</th><th>CPU</th><th>Memory MB</th><th></th></tr></thead><tbody id="procBody"></tbody></table></div></div>
+      </section>
 
-/* ---------- navigation ---------- */
-const TITLES={overview:['Overview','Live status of your computer'],processes:['Processes','See and stop running programs'],services:['Services','Start, stop and restart Windows services'],
- actions:['Quick Actions','One-click controls for your PC'],terminal:['PowerShell','Run any command on your computer'],local:['Local AI','Chat with models running on your PC (Ollama)'],
- cloud:['Cloud AI','Claude, OpenAI and Gemini in one place'],mcp:['MCP Servers','Manage your Model Context Protocol servers'],skills:['Skills','Reusable one-click PowerShell skills'],settings:['Settings','Connect the dashboard to your PC']};
-let page='overview';
-function go(p){page=p;$$('.page').forEach(x=>x.classList.toggle('on',x.id==='p-'+p));$$('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.p===p));
-  $('#title').textContent=TITLES[p][0];$('#sub').textContent=TITLES[p][1];
-  if(p==='processes')loadProc();if(p==='services')loadSvc();if(p==='local')loadModels();if(p==='mcp')renderMcp();if(p==='skills')renderSkills();if(p==='settings'){$('#sUrl').value=S.url;$('#sToken').value=S.token}}
-$('#nav').addEventListener('click',e=>{const b=e.target.closest('button');if(b)go(b.dataset.p)});
-$('#themeBtn').onclick=()=>{S.theme=S.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=S.theme;save();drawHist()};
+      <section id="page-services" class="page">
+        <div class="card"><div class="panel-title"><h3>Service monitor</h3><div class="row"><input id="svcFilter" placeholder="Filter services" style="width:220px;" /><select id="svcStatus" style="width:160px;"><option value="">All</option><option value="Running">Running</option><option value="Stopped">Stopped</option></select><button class="btn sm" id="refreshSvcBtn">↻ Refresh</button></div></div><div class="table-wrap"><table><thead><tr><th>Name</th><th>Display</th><th>Status</th><th>Startup</th><th></th></tr></thead><tbody id="svcBody"></tbody></table></div></div>
+      </section>
 
-/* ---------- overview ---------- */
-const cpuH=[],ramH=[];
-function ring(id,v){const e=$(id);e.style.setProperty('--v',v);e.firstElementChild.textContent=v+'%'}
-function drawHist(){
-  const c=$('#hist');if(!c)return;const dpr=devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight;if(!w)return;c.width=w*dpr;c.height=h*dpr;
-  const g=c.getContext('2d');g.scale(dpr,dpr);g.clearRect(0,0,w,h);
-  const css=getComputedStyle(document.documentElement);g.strokeStyle=css.getPropertyValue('--line');g.lineWidth=1;
-  for(let i=0;i<=4;i++){const y=8+(h-16)*i/4;g.beginPath();g.moveTo(0,y);g.lineTo(w,y);g.stroke()}
-  [[cpuH,css.getPropertyValue('--a')],[ramH,css.getPropertyValue('--a2')]].forEach(([d,col])=>{
-    if(d.length<2)return;g.strokeStyle=col.trim();g.lineWidth=2.2;g.beginPath();
-    d.forEach((v,i)=>{const x=w*i/59,y=8+(h-16)*(1-v/100);i?g.lineTo(x,y):g.moveTo(x,y)});g.stroke()});
-}
-async function loadStats(){
-  try{const s=await api('/api/stats');
-    const ramUsed=s.ramTotalGB-s.ramFreeGB,ramPct=Math.round(ramUsed/s.ramTotalGB*100);
-    ring('#rCpu',s.cpu);ring('#rRam',ramPct);$('#cpuName').textContent=s.cpuName;$('#ramTxt').textContent=`${ramUsed.toFixed(1)} / ${s.ramTotalGB} GB`;
-    $('#uptime').textContent=s.uptimeHours>=24?(s.uptimeHours/24).toFixed(1)+' days':s.uptimeHours+' h';$('#osName').textContent=s.os+' (build '+s.build+')';
-    $('#procCount').textContent=s.processCount;$('#hostName').textContent=s.host+' · '+s.user;
-    cpuH.push(s.cpu);ramH.push(ramPct);if(cpuH.length>60){cpuH.shift();ramH.shift()}drawHist();
-    $('#disks').innerHTML=s.disks.map(d=>{const used=d.totalGB-d.freeGB,p=Math.round(used/d.totalGB*100);
-      return `<div><b>${esc(d.name)}</b> <span style="color:var(--mut)">${used.toFixed(0)} / ${d.totalGB} GB used</span><div class="bar"><i class="${p>90?'hot':''}" style="width:${p}%"></i></div></div>`}).join('')||'<div class="empty">No disks</div>';
-  }catch(e){}
-}
+      <section id="page-terminal" class="page">
+        <div class="card"><h3>PowerShell terminal</h3><div class="field"><textarea id="cmdInput" rows="5" placeholder="Get-Process | Sort CPU -Descending | Select -First 10"></textarea></div><div class="row" style="margin:12px 0 10px;"><button id="runCmdBtn" class="btn primary">▶ Run</button><button id="clearCmdBtn" class="btn">Clear</button><span id="cmdStatus" class="badge">Ready</span></div><pre id="cmdOutput" class="output">Output appears here…</pre></div>
+      </section>
 
-/* ---------- processes ---------- */
-let procs=[];
-async function loadProc(){try{procs=await api('/api/processes');renderProc()}catch(e){toast(e.message,'err')}}
-function renderProc(){const f=$('#procFilter').value.toLowerCase();
-  $('#procBody').innerHTML=procs.filter(p=>p.name.toLowerCase().includes(f)).map(p=>`<tr><td>${esc(p.name)}</td><td>${p.id}</td><td>${p.cpu}</td><td>${p.memMB}</td><td><button class="btn sm danger" data-kill="${p.id}" data-n="${esc(p.name)}">Stop</button></td></tr>`).join('')||'<tr><td colspan=5 class="empty">No processes</td></tr>'}
-$('#procFilter').oninput=renderProc;$('#procRefresh').onclick=loadProc;
-$('#procBody').onclick=async e=>{const b=e.target.closest('[data-kill]');if(!b||!confirm(`Stop ${b.dataset.n} (PID ${b.dataset.kill})?`))return;
-  try{await api('/api/process/stop',{id:+b.dataset.kill});toast('Process stopped','ok');loadProc()}catch(x){toast(x.message,'err')}};
+      <section id="page-local" class="page"><div class="card"><h3>Local AI</h3><div class="row" style="margin-bottom:14px;"><select id="ollamaModel" style="width:300px;"></select><button id="refreshModelsBtn" class="btn">↻ Refresh</button><span id="ollamaBadge" class="badge">Ollama</span></div><div id="localChat" class="chat"></div></div></section>
 
-/* ---------- services ---------- */
-let svcs=[];
-async function loadSvc(){try{svcs=await api('/api/services');renderSvc()}catch(e){toast(e.message,'err')}}
-function renderSvc(){const f=$('#svcFilter').value.toLowerCase(),st=$('#svcStatus').value;
-  const list=svcs.filter(s=>(!st||s.status===st)&&(s.name+s.display).toLowerCase().includes(f)).slice(0,300);
-  $('#svcBody').innerHTML=list.map(s=>`<tr><td>${esc(s.name)}</td><td>${esc(s.display)}</td><td><span class="badge ${s.status==='Running'?'ok':''}">${esc(s.status)}</span></td><td>${esc(s.start)}</td>
-   <td style="white-space:nowrap"><button class="btn sm" data-sv="start" data-n="${esc(s.name)}">Start</button> <button class="btn sm" data-sv="restart" data-n="${esc(s.name)}">Restart</button> <button class="btn sm danger" data-sv="stop" data-n="${esc(s.name)}">Stop</button></td></tr>`).join('')||'<tr><td colspan=5 class="empty">No services</td></tr>'}
-$('#svcFilter').oninput=renderSvc;$('#svcStatus').onchange=renderSvc;$('#svcRefresh').onclick=loadSvc;
-$('#svcBody').onclick=async e=>{const b=e.target.closest('[data-sv]');if(!b)return;if(b.dataset.sv==='stop'&&!confirm('Stop service '+b.dataset.n+'?'))return;
-  try{await api('/api/service',{name:b.dataset.n,action:b.dataset.sv});toast(b.dataset.sv+' OK: '+b.dataset.n,'ok');loadSvc()}catch(x){toast(x.message,'err')}};
+      <section id="page-cloud" class="page"><div class="card"><h3>Cloud AI</h3><div class="grid two"><div class="field"><label>Provider</label><select id="cloudProvider"><option value="anthropic">Anthropic</option><option value="openai">OpenAI</option><option value="gemini">Gemini</option></select></div><div class="field"><label>Model</label><input id="cloudModel" placeholder="Model name" /></div></div><div class="field" style="margin-top:12px;"><label>API key</label><input id="cloudKey" type="password" placeholder="Stored only in your browser" /></div><div id="cloudChat" class="chat" style="margin-top:14px;"></div></div></section>
 
-/* ---------- quick actions ---------- */
-const ACT={
- actPower:[['lock','🔒','Lock screen'],['sleep','😴','Sleep'],['restart','🔄','Restart (30s)',1],['shutdown','⏻','Shut down (30s)',1],['cancel','✋','Cancel shutdown']],
- actMaint:[['flushdns','🌐','Flush DNS'],['emptybin','🗑️','Empty Recycle Bin',1],['cleantemp','🧹','Clean temp files',1],['perf_high','🚀','High performance'],['perf_balanced','⚖️','Balanced power'],['perf_saver','🔋','Power saver'],['winupdate','⬆️','Windows Update']],
- actTools:[['taskmgr','📈','Task Manager'],['explorer','📁','File Explorer'],['settings','⚙️','Windows Settings'],['devmgr','🔧','Device Manager']]};
-Object.entries(ACT).forEach(([id,items])=>{$('#'+id).innerHTML=items.map(([k,i,l,d])=>`<button class="act ${d?'danger':''}" data-act="${k}" data-d="${d?1:0}"><b>${i}</b>${l}</button>`).join('')});
-$('#p-actions').onclick=async e=>{const b=e.target.closest('[data-act]');if(!b)return;if(b.dataset.d==='1'&&!confirm('Are you sure: '+b.textContent.trim()+'?'))return;
-  try{const r=await api('/api/action',{name:b.dataset.act});toast(r.output||'Done','ok')}catch(x){toast(x.message,'err')}};
+      <section id="page-mcp" class="page"><div class="card"><h3>MCP servers</h3><div id="mcpList" class="grid three"></div></div></section>
 
-/* ---------- terminal ---------- */
-async function runPS(cmd,out,state){
-  if(state)state.textContent='Running…';out.textContent='';
-  try{const r=await api('/api/run',{command:cmd});out.textContent=r.output||'(no output)';if(state)state.textContent='Done'}
-  catch(e){out.textContent='Error: '+e.message;if(state)state.textContent='Failed'}
-}
-$('#runCmd').onclick=()=>{const c=$('#cmd').value.trim();if(c)runPS(c,$('#cmdOut'),$('#cmdState'))};
-$('#cmd').addEventListener('keydown',e=>{if(e.ctrlKey&&e.key==='Enter')$('#runCmd').click()});
-$('#clearOut').onclick=()=>{$('#cmdOut').textContent='';$('#cmdState').textContent=''};
+      <section id="page-skills" class="page"><div class="card"><h3>Skills</h3><div id="skillList" class="grid three"></div></div></section>
 
-/* ---------- chat widget ---------- */
-function chatUI(root,send){
-  root.innerHTML=`<div class="msgs"></div><div class="composer"><textarea rows="2" placeholder="Type a message… (Enter to send, Shift+Enter for new line)"></textarea><button class="btn primary">Send</button><button class="btn">Clear</button></div>`;
-  const msgs=$('.msgs',root),ta=$('textarea',root),[sendB,clrB]=$$('button',root);let hist=[];
-  const add=(r,t)=>{const d=document.createElement('div');d.className='msg '+r;d.textContent=t;msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;return d};
-  async function go(){const t=ta.value.trim();if(!t)return;ta.value='';hist.push({role:'user',content:t});add('user',t);const p=add('assistant','…');sendB.disabled=true;
-    try{const r=await send(hist);hist.push({role:'assistant',content:r});p.textContent=r}catch(e){p.textContent='Error: '+e.message;p.classList.add('err');hist.pop()}
-    sendB.disabled=false;msgs.scrollTop=msgs.scrollHeight}
-  sendB.onclick=go;clrB.onclick=()=>{hist=[];msgs.innerHTML=''};
-  ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();go()}});
-}
+      <section id="page-security" class="page"><div class="grid two"><div class="card"><h3>Security posture</h3><ul class="list" id="securityList"></ul></div><div class="card"><h3>Audit log</h3><ul class="list" id="auditList"></ul></div></div></section>
 
-/* ---------- local AI (Ollama through the bridge) ---------- */
-async function loadModels(){
-  const sel=$('#ollamaModel');
-  try{const r=await api('/api/ollama/tags');const names=(r.models||[]).map(m=>m.name);
-    sel.innerHTML=names.map(n=>`<option ${n===S.ollamaModel?'selected':''}>${esc(n)}</option>`).join('')||'<option value="">No models installed</option>';
-    $('#ollamaState').textContent=names.length+' models';$('#ollamaState').className='badge ok';
-  }catch(e){sel.innerHTML='<option value="">Ollama not reachable</option>';$('#ollamaState').textContent='Offline';$('#ollamaState').className='badge bad'}
-}
-$('#ollamaModel').onchange=e=>{S.ollamaModel=e.target.value;save()};$('#ollamaRefresh').onclick=loadModels;
-chatUI($('#localChat'),async h=>{const m=$('#ollamaModel').value;if(!m)throw new Error('Pick an Ollama model first (install one with: ollama pull llama3.2)');
-  const r=await api('/api/ollama/chat',{model:m,messages:h,stream:false});return r.message?.content||'(empty reply)'});
+      <section id="page-settings" class="page"><div class="grid two"><div class="card"><h3>Bridge connection</h3><div class="field"><label>Bridge URL</label><input id="bridgeUrl" value="http://127.0.0.1:8787" /></div><div class="field" style="margin-top:12px;"><label>Token</label><input id="bridgeToken" type="password" placeholder="Paste the bridge token" /></div><div class="row" style="margin-top:14px;"><button id="saveBridgeBtn" class="btn primary">Save &amp; connect</button><button id="clearDataBtn" class="btn danger">Reset browser data</button></div></div><div class="card"><h3>How to start</h3><ol class="muted" style="padding-left:18px;line-height:1.8;margin:0;">
+            <li>Open PowerShell as administrator.</li><li>Run <code>powershell -ExecutionPolicy Bypass -File .\bridge.ps1</code>.</li><li>Copy the generated token and paste it here.</li><li>Keep the bridge window open while using the dashboard.</li></ol></div></div></section>
+    </main>
+  </div>
 
-/* ---------- cloud AI (direct from the browser) ---------- */
-function syncCloud(){const p=S.cloud.provider;$('#cProv').value=p;$('#cKey').value=S.cloud.keys[p]||'';$('#cModel').value=S.cloud.models[p]||''}
-$('#cProv').onchange=e=>{S.cloud.provider=e.target.value;save();syncCloud()};
-$('#cKey').onchange=e=>{S.cloud.keys[S.cloud.provider]=e.target.value.trim();save()};
-$('#cModel').onchange=e=>{S.cloud.models[S.cloud.provider]=e.target.value.trim();save()};
-chatUI($('#cloudChat'),async h=>{
-  const p=S.cloud.provider,key=S.cloud.keys[p],model=S.cloud.models[p];if(!key)throw new Error('Paste your API key first');
-  let r,d;
-  if(p==='anthropic'){r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true','content-type':'application/json'},body:JSON.stringify({model,max_tokens:2048,messages:h})});
-    d=await r.json();if(!r.ok)throw new Error(d.error?.message||r.status);return d.content.map(c=>c.text||'').join('')}
-  if(p==='openai'){r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Authorization':'Bearer '+key,'content-type':'application/json'},body:JSON.stringify({model,messages:h})});
-    d=await r.json();if(!r.ok)throw new Error(d.error?.message||r.status);return d.choices[0].message.content}
-  r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`,{method:'POST',headers:{'content-type':'application/json'},
-    body:JSON.stringify({contents:h.map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}))})});
-  d=await r.json();if(!r.ok)throw new Error(d.error?.message||r.status);return d.candidates?.[0]?.content?.parts?.map(x=>x.text).join('')||'(empty reply)'});
-
-/* ---------- MCP servers ---------- */
-const PRESETS=[
- {id:'filesystem',name:'Filesystem',desc:'Read/write files in a folder',command:'npx',args:'-y\n@modelcontextprotocol/server-filesystem\nC:\\Users',env:''},
- {id:'memory',name:'Memory',desc:'Persistent knowledge graph memory',command:'npx',args:'-y\n@modelcontextprotocol/server-memory',env:''},
- {id:'playwright',name:'Playwright',desc:'Browser automation',command:'npx',args:'-y\n@playwright/mcp@latest',env:''},
- {id:'github',name:'GitHub',desc:'Repos, issues and pull requests',command:'npx',args:'-y\n@modelcontextprotocol/server-github',env:'GITHUB_PERSONAL_ACCESS_TOKEN='},
- {id:'fetch',name:'Fetch',desc:'Read web pages (needs uv)',command:'uvx',args:'mcp-server-fetch',env:''}];
-if(!S.mcp){S.mcp=[PRESETS[0],PRESETS[1]].map(p=>({...p}));save()}
-let mcpRun={};
-$('#mcpPreset').innerHTML=PRESETS.map(p=>`<option value="${p.id}">${esc(p.name)} – ${esc(p.desc)}</option>`).join('');
-const lines=t=>(t||'').split('\n').map(x=>x.trim()).filter(Boolean);
-function mcpConfig(){const o={};S.mcp.forEach(m=>{const e={command:m.command,args:lines(m.args)};const env={};lines(m.env).forEach(l=>{const i=l.indexOf('=');if(i>0)env[l.slice(0,i)]=l.slice(i+1)});if(Object.keys(env).length)e.env=env;o[m.id]=e});return{mcpServers:o}}
-async function renderMcp(){
-  if(connected){try{const st=await api('/api/mcp/status');mcpRun={};st.forEach(s=>mcpRun[s.id]=s.running)}catch{}}
-  $('#mcpList').innerHTML=S.mcp.map((m,i)=>`<div class="card mcp"><h4>🔌 ${esc(m.name)} <span class="badge ${mcpRun[m.id]?'ok':''}">${mcpRun[m.id]?'running':'stopped'}</span></h4>
-    <p><code class="k">${esc(m.command)} ${esc(lines(m.args).join(' '))}</code></p>
-    <div class="row"><button class="btn sm" data-m="start" data-i="${i}">▶ Start</button><button class="btn sm" data-m="stop" data-i="${i}">■ Stop</button><button class="btn sm" data-m="edit" data-i="${i}">✎ Edit</button><button class="btn sm danger" data-m="del" data-i="${i}">🗑</button></div></div>`).join('')||'<div class="empty">No servers yet. Add a preset above.</div>';
-  $('#mcpJson').value=JSON.stringify(mcpConfig(),null,2);
-}
-$('#mcpList').onclick=async e=>{const b=e.target.closest('[data-m]');if(!b)return;const m=S.mcp[+b.dataset.i],a=b.dataset.m;
-  try{
-    if(a==='start'){const env={};lines(m.env).forEach(l=>{const i=l.indexOf('=');if(i>0)env[l.slice(0,i)]=l.slice(i+1)});
-      const r=await api('/api/mcp/start',{id:m.id,command:m.command==='npx'?'npx.cmd':m.command,args:lines(m.args),env});toast(r.running?'Server started (PID '+r.pid+')':'Server exited right away – check the command','ok')}
-    if(a==='stop'){await api('/api/mcp/stop',{id:m.id});toast('Stopped','ok')}
-    if(a==='del'&&confirm('Remove '+m.name+'?')){S.mcp.splice(+b.dataset.i,1);save()}
-    if(a==='edit'){const n=prompt('Name',m.name);if(n===null)return;const c=prompt('Command (e.g. npx)',m.command);if(c===null)return;
-      const ar=prompt('Arguments, separated by | ',lines(m.args).join('|'));if(ar===null)return;const ev=prompt('Environment variables KEY=VALUE separated by |',lines(m.env).join('|'));if(ev===null)return;
-      Object.assign(m,{name:n,command:c,args:ar.split('|').join('\n'),env:ev.split('|').join('\n')});save()}
-  }catch(x){toast(x.message,'err')}renderMcp()};
-$('#mcpAddPreset').onclick=()=>{const p=PRESETS.find(x=>x.id===$('#mcpPreset').value);let id=p.id;while(S.mcp.some(m=>m.id===id))id+='-2';S.mcp.push({...p,id});save();renderMcp()};
-$('#mcpAddCustom').onclick=()=>{const n=prompt('Server name');if(!n)return;const c=prompt('Command (e.g. npx, python, node)');if(!c)return;const a=prompt('Arguments separated by |');
-  const id=n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'server';S.mcp.push({id,name:n,desc:'',command:c,args:(a||'').split('|').join('\n'),env:''});save();renderMcp()};
-$('#mcpSaveCfg').onclick=async()=>{
-  try{const cur=await api('/api/claude-config');let obj={};if(cur.content.trim())obj=JSON.parse(cur.content);
-    obj.mcpServers=Object.assign({},obj.mcpServers||{},mcpConfig().mcpServers);
-    const r=await api('/api/claude-config',{content:JSON.stringify(obj,null,2)});toast('Saved to '+r.path+' (backup created). Restart Claude Desktop.','ok')}catch(e){toast(e.message,'err')}};
-$('#mcpLoadCfg').onclick=async()=>{
-  try{const cur=await api('/api/claude-config');if(!cur.content.trim())return toast('No Claude config file found yet');const s=JSON.parse(cur.content).mcpServers||{};let n=0;
-    Object.entries(s).forEach(([id,v])=>{if(S.mcp.some(m=>m.id===id))return;
-      S.mcp.push({id,name:id,desc:'',command:v.command||'',args:(v.args||[]).join('\n'),env:Object.entries(v.env||{}).map(([k,x])=>k+'='+x).join('\n')});n++});
-    save();renderMcp();toast(n+' server(s) imported','ok')}catch(e){toast(e.message,'err')}};
-
-/* ---------- skills ---------- */
-const SK0=[
- ['Show IP addresses','Local network addresses',"Get-NetIPAddress -AddressFamily IPv4 | Format-Table InterfaceAlias,IPAddress -AutoSize"],
- ['Top memory apps','15 biggest memory users',"Get-Process | Sort WorkingSet64 -Descending | Select -First 15 Name,Id,@{n='MB';e={[int]($_.WorkingSet64/1MB)}} | Format-Table -AutoSize"],
- ['Disk usage','Used and free space per drive',"Get-PSDrive -PSProvider FileSystem | Format-Table Name,@{n='UsedGB';e={[math]::Round($_.Used/1GB,1)}},@{n='FreeGB';e={[math]::Round($_.Free/1GB,1)}} -AutoSize"],
- ['Installed apps','List installed programs',"Get-ItemProperty HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\* | Where DisplayName | Sort DisplayName | Format-Table DisplayName,DisplayVersion -AutoSize"],
- ['Open ports','Listening TCP ports',"Get-NetTCPConnection -State Listen | Sort LocalPort | Format-Table LocalAddress,LocalPort,OwningProcess -AutoSize"],
- ['Startup programs','What starts with Windows',"Get-CimInstance Win32_StartupCommand | Format-Table Name,Command -AutoSize"],
- ['Defender status','Antivirus protection state',"Get-MpComputerStatus | Format-List AntivirusEnabled,RealTimeProtectionEnabled,AntivirusSignatureLastUpdated"],
- ['Wi-Fi status','Current wireless connection',"netsh wlan show interfaces"],
- ['GPU info','Graphics card and driver',"Get-CimInstance Win32_VideoController | Format-Table Name,DriverVersion -AutoSize"],
- ['Battery','Charge level',"Get-CimInstance Win32_Battery | Format-List EstimatedChargeRemaining,BatteryStatus"],
- ['Recent updates','Last 10 Windows updates',"Get-HotFix | Sort InstalledOn -Descending | Select -First 10 | Format-Table -AutoSize"],
- ['Dev tool versions','Node, Python, Git, Ollama',"node -v; python --version; git --version; ollama --version"],
- ['Ollama models','Installed local AI models',"ollama list"]];
-if(!S.skills){S.skills=SK0.map(([name,desc,cmd])=>({name,desc,cmd}));save()}
-function renderSkills(){const f=$('#skFilter').value.toLowerCase();
-  $('#skList').innerHTML=S.skills.map((s,i)=>({s,i})).filter(({s})=>(s.name+s.desc).toLowerCase().includes(f)).map(({s,i})=>
-   `<div class="card skill"><h4>🎯 ${esc(s.name)}</h4><p>${esc(s.desc)}</p><div class="row"><button class="btn sm primary" data-s="run" data-i="${i}">▶ Run</button><button class="btn sm" data-s="edit" data-i="${i}">✎ Edit</button><button class="btn sm danger" data-s="del" data-i="${i}">🗑</button></div></div>`).join('')||'<div class="empty">No skills match.</div>'}
-$('#skFilter').oninput=renderSkills;
-$('#skList').onclick=e=>{const b=e.target.closest('[data-s]');if(!b)return;const i=+b.dataset.i,s=S.skills[i];
-  if(b.dataset.s==='run'){$('#skOutTitle').textContent='Output – '+s.name;runPS(s.cmd,$('#skOut'))}
-  if(b.dataset.s==='del'&&confirm('Delete skill '+s.name+'?')){S.skills.splice(i,1);save();renderSkills()}
-  if(b.dataset.s==='edit'){const n=prompt('Name',s.name);if(n===null)return;const d=prompt('Description',s.desc);if(d===null)return;const c=prompt('PowerShell command',s.cmd);if(c===null)return;S.skills[i]={name:n,desc:d,cmd:c};save();renderSkills()}};
-$('#skNew').onclick=()=>{const n=prompt('Skill name');if(!n)return;const d=prompt('Short description')||'';const c=prompt('PowerShell command to run');if(!c)return;S.skills.unshift({name:n,desc:d,cmd:c});save();renderSkills()};
-$('#skExport').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S.skills,null,2)],{type:'application/json'}));a.download='pc-control-skills.json';a.click()};
-$('#skImport').onclick=()=>$('#fileIn').click();
-$('#fileIn').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const a=JSON.parse(await f.text());if(!Array.isArray(a))throw 0;
-  a.filter(x=>x&&x.name&&x.cmd).forEach(x=>S.skills.push({name:String(x.name),desc:String(x.desc||''),cmd:String(x.cmd)}));save();renderSkills();toast('Skills imported','ok')}catch{toast('Not a valid skills file','err')}e.target.value=''};
-
-/* ---------- settings ---------- */
-$('#sSave').onclick=async()=>{S.url=$('#sUrl').value.trim()||DEF.url;S.token=$('#sToken').value.trim();save();
-  const ok=await ping();const st=$('#sState');st.textContent=ok?'Connected ✔':'Cannot connect';st.className='badge '+(ok?'ok':'bad');if(ok){toast('Connected','ok');loadStats()}else toast('Check that bridge.ps1 is running and the token is right','err')};
-$('#sClear').onclick=()=>{if(confirm('Delete all saved settings, keys, skills and MCP servers from this browser?')){localStorage.removeItem('pcc');location.reload()}};
-
-/* ---------- start ---------- */
-syncCloud();
-window.addEventListener('resize',drawHist);
-ping().then(ok=>{if(ok)loadStats();else if(!S.token)go('settings')});
-setInterval(()=>{if(page==='overview'&&S.token)loadStats()},3000);
-setInterval(()=>{if(S.token)ping()},10000);
-</script>
+  <script>
+    const $ = (sel, parent = document) => parent.querySelector(sel);
+    const $$ = (sel, parent = document) => [...parent.querySelectorAll(sel)];
+    const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+    const defaultState = { theme: 'dark', url: 'http://127.0.0.1:8787', token: '', ollamaModel: '', cloudProvider: 'anthropic', cloudModel: 'claude-sonnet-4', cloudKey: '', systemPrompt: 'Act as a careful local engineering assistant. Prefer evidence, safe actions, and explicit approval for anything that changes the system.' };
+    let S = { ...defaultState, ...JSON.parse(localStorage.getItem('helpyard-state') || '{}') };
+    const save = () => localStorage.setItem('helpyard-state', JSON.stringify(S));
+    const setTheme = () => {
+      document.documentElement.style.colorScheme = S.theme;
+      document.body.style.background = S.theme === 'dark' ? 'radial-gradient(circle at top, rgba(76,201,240,.12), transparent 35%), linear-gradient(180deg, #07111d, #0d1b2a)' : 'radial-gradient(circle at top, rgba(76,201,240,.08), transparent 35%), linear-gradient(180deg, #edf4ff, #dfe9f7)';
+    };
+    setTheme();
+    function toast(msg, type = '') { const current = document.getElementById('toast'); if (!current) { const box = document.createElement('div'); box.id = 'toast'; box.style.position = 'fixed'; box.style.right = '16px'; box.style.bottom = '16px'; box.style.zIndex = '100'; document.body.appendChild(box); } const container = document.getElementById('toast'); const node = document.createElement('div'); node.textContent = msg; node.style.padding = '10px 14px'; node.style.borderRadius = '12px'; node.style.background = type === 'error' ? 'rgba(255,93,115,.12)' : 'rgba(61,220,151,.12)'; node.style.border = '1px solid ' + (type === 'error' ? 'rgba(255,93,115,.3)' : 'rgba(61,220,151,.3)'); node.style.color = '#edf6ff'; node.style.boxShadow = '0 18px 40px rgba(0,0,0,.25)'; container.appendChild(node); setTimeout(() => node.remove(), 2600); }
+    async function api(path, body, method = null) { if (!S.token) throw new Error('Paste the bridge token in Settings before connecting.'); const response = await fetch(S.url.replace(/\/$/, '') + path, { method: method || (body ? 'POST' : 'GET'), headers: { 'Authorization': 'Bearer ' + S.token, 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined }); let data = null; try { data = await response.json(); } catch (err) {} if (!response.ok) throw new Error((data && data.error) || ('HTTP ' + response.status)); return data; }
+    function updateSidebar(connected, admin, host) { const badge = document.getElementById('sidebarState'); const dot = document.getElementById('sidebarStatus'); const hostBox = document.getElementById('sidebarHost'); if (connected) { badge.textContent = 'Connected'; dot.className = 'dot ok'; hostBox.textContent = host || 'Local machine'; } else { badge.textContent = 'Offline'; dot.className = 'dot'; hostBox.textContent = 'Bridge disconnected'; } const adminBadge = document.getElementById('adminBadge'); if (admin === true) { adminBadge.textContent = 'Administrator'; adminBadge.className = 'badge ok'; } else if (connected === false) { adminBadge.textContent = 'Offline'; adminBadge.className = 'badge bad'; } else { adminBadge.textContent = 'Standard user'; adminBadge.className = 'badge warn'; } }
+    async function pingBridge() { try { const data = await api('/api/ping'); updateSidebar(true, !!data.admin, data.host || 'localhost'); return true; } catch (err) { updateSidebar(false, false, ''); return false; } }
+    function drawHistory() { const canvas = document.getElementById('chart'); if (!canvas) return; const ctx = canvas.getContext('2d'); const { width, height } = canvas; ctx.clearRect(0, 0, width, height); ctx.strokeStyle = 'rgba(148,163,184,.22)'; ctx.lineWidth = 1; for (let i = 0; i <= 4; i++) { const y = 15 + (height - 30) * (i / 4); ctx.beginPath(); ctx.moveTo(10, y); ctx.lineTo(width - 10, y); ctx.stroke(); } const cpu = window.cpuHistory || []; const ram = window.ramHistory || []; const draw = (data, color) => { if (!data.length) return; ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 2; data.forEach((value, index) => { const x = 20 + ((width - 40) * index) / Math.max(1, data.length - 1); const y = height - 20 - (value / 100) * (height - 40); if (index === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }); ctx.stroke(); }; draw(cpu, '#4cc9f0'); draw(ram, '#7c7bff'); }
+    async function loadStats() { try { const data = await api('/api/stats'); const ramUsed = Math.max(0, data.ramTotalGB - data.ramFreeGB); const ramPct = Math.min(100, Math.round((ramUsed / data.ramTotalGB) * 100 || 0)); const ringCpu = document.getElementById('ringCpu'); const ringRam = document.getElementById('ringRam'); ringCpu.style.setProperty('--p', Math.max(0, Math.min(100, Number(data.cpu || 0)))); ringRam.style.setProperty('--p', ramPct); document.getElementById('cpuValue').textContent = Math.max(0, Math.min(100, Number(data.cpu || 0))) + '%'; document.getElementById('ramValue').textContent = ramPct + '%'; document.getElementById('cpuLoad').textContent = Math.max(0, Math.min(100, Number(data.cpu || 0))) + '%'; document.getElementById('ramSummary').textContent = ramUsed.toFixed(1) + ' / ' + data.ramTotalGB + ' GB'; document.getElementById('cpuName').textContent = data.cpuName || 'CPU'; document.getElementById('ramName').textContent = 'RAM'; document.getElementById('uptimeValue').textContent = data.uptimeHours >= 24 ? (data.uptimeHours / 24).toFixed(1) + ' days' : data.uptimeHours + ' h'; document.getElementById('uptimeMeta').textContent = data.os || 'Windows'; document.getElementById('procCount').textContent = data.processCount || 0; document.getElementById('hostMeta').textContent = (data.host || 'Local machine') + ' · ' + (data.user || 'user'); window.cpuHistory = [...(window.cpuHistory || []), Math.max(0, Math.min(100, Number(data.cpu || 0)))]; window.ramHistory = [...(window.ramHistory || []), ramPct]; while ((window.cpuHistory || []).length > 24) { window.cpuHistory.shift(); } while ((window.ramHistory || []).length > 24) { window.ramHistory.shift(); } drawHistory(); const diskList = document.getElementById('diskList'); diskList.innerHTML = (data.disks || []).map((disk) => { const used = Number(disk.totalGB || 0) - Number(disk.freeGB || 0); const p = Number(disk.totalGB || 0) ? Math.min(100, Math.round((used / disk.totalGB) * 100)) : 0; return `<div><div class="row" style="justify-content:space-between; margin-bottom:6px;"><strong>${esc(disk.name)}</strong><span class="muted">${used.toFixed(0)} / ${Number(disk.totalGB || 0).toFixed(0)} GB</span></div><div class="progress"><span style="width:${p}%"></span></div></div>`; }).join('') || '<div class="muted">No disks reported.</div>'; } catch (err) { } }
+    async function loadProjects() { try { const data = await api('/api/projects'); const grid = document.getElementById('projectsGrid'); grid.innerHTML = (data || []).slice(0, 12).map((project) => `<div class="project-card"><div class="row" style="justify-content:space-between; margin-bottom:8px;"><h4>${esc(project.name || 'Project')}</h4><span class="pill ${project.kind === 'git' ? 'ok' : ''}">${project.kind === 'git' ? 'Git' : 'Folder'}</span></div><p>${esc(project.path || 'Unknown path')}</p><div class="muted" style="font-size:12px;">${project.branch ? 'Branch: ' + esc(project.branch) : 'Workspace folder'}</div></div>`).join('') || '<div class="muted">No local projects discovered yet.</div>'; } catch (err) { document.getElementById('projectsGrid').innerHTML = '<div class="muted">Unable to load project list from the local bridge.</div>'; } }
+    async function loadModels() { const sel = document.getElementById('ollamaModel'); try { const data = await api('/api/ollama/tags'); const names = (data.models || []).map((m) => m.name); sel.innerHTML = names.map((name) => `<option value="${esc(name)}">${esc(name)}</option>`).join('') || '<option value="">No local models</option>'; if (!S.ollamaModel && names.length) S.ollamaModel = names[0]; if (S.ollamaModel) sel.value = S.ollamaModel; document.getElementById('ollamaBadge').className = 'badge ok'; document.getElementById('ollamaBadge').textContent = names.length ? (names.length + ' models') : 'Offline'; const localSummary = document.getElementById('localSummary'); localSummary.textContent = names.length ? 'Ollama available with ' + names.length + ' installed model(s).' : 'Ollama not reporting any installed models.'; document.getElementById('localModelList').innerHTML = names.slice(0, 6).map((name) => `<div class="row" style="justify-content:space-between;"><span>${esc(name)}</span><span class="pill ok">Ready</span></div>`).join('') || '<div class="muted">No models installed.</div>'; } catch (err) { sel.innerHTML = '<option value="">Ollama unavailable</option>'; document.getElementById('ollamaBadge').className = 'badge bad'; document.getElementById('ollamaBadge').textContent = 'Offline'; document.getElementById('localSummary').textContent = 'Ollama is not reachable from the local bridge.'; document.getElementById('localModelList').innerHTML = '<div class="muted">Install Ollama and pull a model to enable local inference.</div>'; } }
+    function populateToolList() { const items = [['Git','Available locally','ok'],['GitHub CLI','Check via gh auth status','warn'],['VS Code CLI','Use code --version','ok'],['Ollama','Local model runtime','warn']]; document.getElementById('toolList').innerHTML = items.map(([name, status, level]) => `<li><span>${esc(name)}</span><span class="pill ${level}">${esc(status)}</span></li>`).join(''); }
+    function populateActionList() { const actions = [['Check local services','Bridge and Ollama status'],['Inspect repo health','Git repository state'],['Review system tasks','Process and service summary'],['Run a safe command','PowerShell command execution']]; document.getElementById('actionList').innerHTML = actions.map(([title, detail]) => `<li><span>${esc(title)}</span><span class="muted">${esc(detail)}</span></li>`).join(''); }
+    function renderSecurity() { const list = [['Token auth','Every protected endpoint checks a bearer token.','ok'],['Local-only host binding','Bridge binds to 127.0.0.1 only.','ok'],['Permission registry','Privileged actions require explicit approval and admin rights.','warn'],['Audit trail','Action execution metadata is captured for review.','warn']]; document.getElementById('securityList').innerHTML = list.map(([label, text, state]) => `<li><span>${esc(label)}</span><span class="pill ${state}">${esc(text)}</span></li>`).join(''); const audit = [['Token validation','enabled'],['Origin validation','enabled'],['CSRF-style policy','local-only strict mode'],['Action approval gate','enabled']]; document.getElementById('auditList').innerHTML = audit.map(([title, detail]) => `<li><span>${esc(title)}</span><span class="muted">${esc(detail)}</span></li>`).join(''); }
+    function populateActionCards() { const cards = [{ name: 'Lock Screen', cmd: 'lock', risk: 'Low', action: 'standard' }, { name: 'Flush DNS', cmd: 'flushdns', risk: 'Low', action: 'standard' }, { name: 'Open File Explorer', cmd: 'explorer', risk: 'Low', action: 'standard' }, { name: 'Restart Computer', cmd: 'restart', risk: 'High', action: 'admin' }]; document.getElementById('actionCards').innerHTML = cards.map((item) => `<div class="tool-card"><h4>${esc(item.name)}</h4><p>Permission: ${esc(item.action)} · Risk: ${esc(item.risk)}</p><div class="actions"><button class="btn sm primary" data-action="${esc(item.cmd)}">Run</button></div></div>`).join(''); }
+    function renderProcesses() { const filter = $('#procFilter').value.toLowerCase(); const body = document.getElementById('procBody'); body.innerHTML = ''; const rows = window.procRows || []; const visible = rows.filter((p) => p.name.toLowerCase().includes(filter)); if (!visible.length) { body.innerHTML = '<tr><td colspan="5" class="muted">No processes match your filter.</td></tr>'; return; } body.innerHTML = visible.map((p) => `<tr><td>${esc(p.name)}</td><td>${esc(p.id)}</td><td>${esc(p.cpu)}</td><td>${esc(p.memMB)}</td><td><button class="btn sm danger" data-kill="${p.id}">Stop</button></td></tr>`).join(''); }
+    async function loadProcesses() { try { const rows = await api('/api/processes'); window.procRows = rows; renderProcesses(); } catch (err) { console.warn(err); } }
+    function renderServices() { const filter = $('#svcFilter').value.toLowerCase(); const statusFilter = $('#svcStatus').value; const body = document.getElementById('svcBody'); const rows = window.svcRows || []; const visible = rows.filter((svc) => { const matchesFilter = (svc.name + svc.display).toLowerCase().includes(filter); const matchesStatus = !statusFilter || svc.status === statusFilter; return matchesFilter && matchesStatus; }); body.innerHTML = visible.map((svc) => `<tr><td>${esc(svc.name)}</td><td>${esc(svc.display)}</td><td><span class="pill ${svc.status === 'Running' ? 'ok' : 'bad'}">${esc(svc.status)}</span></td><td>${esc(svc.start)}</td><td><button class="btn sm" data-svc-action="start" data-svc-name="${esc(svc.name)}">Start</button><button class="btn sm" data-svc-action="restart" data-svc-name="${esc(svc.name)}">Restart</button><button class="btn sm danger" data-svc-action="stop" data-svc-name="${esc(svc.name)}">Stop</button></td></tr>`).join('') || '<tr><td colspan="5" class="muted">No services match.</td></tr>'; }
+    async function loadServices() { try { const rows = await api('/api/services'); window.svcRows = rows; renderServices(); } catch (err) { console.warn(err); } }
+    function setActivePage(name) { $$('.page').forEach((page) => page.classList.toggle('active', page.id === 'page-' + name)); $$('.nav button').forEach((btn) => btn.classList.toggle('active', btn.dataset.page === name)); const titles = { overview:['Overview','Local workstation status and AI controls'], projects:['Projects','Inspect local repositories and workspaces'], workbench:['Workbench','Task planning and safe execution context'], processes:['Processes','Process and memory control'], services:['Services','Service lifecycle and health'], terminal:['Terminal','Run commands with explicit awareness'], local:['Local AI','Chat with installed Ollama models'], cloud:['Cloud AI','Use configured cloud providers'], mcp:['MCP','Manage local Model Context Protocol servers'], skills:['Skills','Quick reusable task commands'], security:['Security','Audit posture and access controls'], settings:['Settings','Connect the dashboard to the bridge'] }; const [title, subtitle] = titles[name] || ['Overview','Local workstation status and AI controls']; document.getElementById('pageTitle').textContent = title; document.getElementById('pageSubtitle').textContent = subtitle; if (name === 'projects') loadProjects(); if (name === 'processes') loadProcesses(); if (name === 'services') loadServices(); if (name === 'local') loadModels(); }
+    document.querySelectorAll('.nav button').forEach((btn) => { btn.addEventListener('click', () => setActivePage(btn.dataset.page)); });
+    document.getElementById('themeToggle').addEventListener('click', () => { S.theme = S.theme === 'dark' ? 'light' : 'dark'; save(); setTheme(); });
+    document.getElementById('refreshProjectsBtn').addEventListener('click', loadProjects); document.getElementById('refreshModelsBtn').addEventListener('click', loadModels); document.getElementById('refreshProcBtn').addEventListener('click', loadProcesses); document.getElementById('refreshSvcBtn').addEventListener('click', loadServices);
+    document.getElementById('procFilter').addEventListener('input', renderProcesses); document.getElementById('svcFilter').addEventListener('input', renderServices); document.getElementById('svcStatus').addEventListener('change', renderServices);
+    document.getElementById('procBody').addEventListener('click', async (event) => { const button = event.target.closest('[data-kill]'); if (!button) return; const pid = Number(button.dataset.kill); if (!pid || !confirm(`Stop process with PID ${pid}?`)) return; try { await api('/api/process/stop', { id: pid }); toast('Process stopped', 'ok'); loadProcesses(); } catch (err) { toast(err.message, 'error'); } });
+    document.getElementById('svcBody').addEventListener('click', async (event) => { const button = event.target.closest('[data-svc-action]'); if (!button) return; const action = button.dataset.svcAction; const name = button.dataset.svcName; if (action === 'stop' && !confirm(`Stop service ${name}?`)) return; try { await api('/api/service', { name, action }); toast(`${action} ${name}`, 'ok'); loadServices(); } catch (err) { toast(err.message, 'error'); } });
+    document.getElementById('runCmdBtn').addEventListener('click', async () => { const command = document.getElementById('cmdInput').value.trim(); if (!command) return; document.getElementById('cmdStatus').textContent = 'Running'; document.getElementById('cmdStatus').className = 'badge warn'; try { const body = await api('/api/run', { command }); document.getElementById('cmdOutput').textContent = body.output || '(no output)'; document.getElementById('cmdStatus').textContent = 'Completed'; document.getElementById('cmdStatus').className = 'badge ok'; } catch (err) { document.getElementById('cmdOutput').textContent = 'Error: ' + err.message; document.getElementById('cmdStatus').textContent = 'Failed'; document.getElementById('cmdStatus').className = 'badge bad'; } });
+    document.getElementById('clearCmdBtn').addEventListener('click', () => { document.getElementById('cmdInput').value = ''; document.getElementById('cmdOutput').textContent = 'Output appears here…'; document.getElementById('cmdStatus').textContent = 'Ready'; document.getElementById('cmdStatus').className = 'badge'; });
+    function renderChat(containerId, onSend) { const container = document.getElementById(containerId); container.innerHTML = `<div class="messages" id="${containerId}-messages"></div><div class="composer"><textarea id="${containerId}-input" rows="2" placeholder="Type a message…"></textarea><button class="btn primary" id="${containerId}-send">Send</button></div>`; const messagesEl = document.getElementById(containerId + '-messages'); const inputEl = document.getElementById(containerId + '-input'); const sendBtn = document.getElementById(containerId + '-send'); let history = []; const addMessage = (role, text) => { const node = document.createElement('div'); node.className = 'message ' + (role === 'user' ? 'user' : 'bot'); node.textContent = text; messagesEl.appendChild(node); messagesEl.scrollTop = messagesEl.scrollHeight; }; const send = async () => { const text = inputEl.value.trim(); if (!text) return; inputEl.value = ''; addMessage('user', text); history.push({ role: 'user', content: text }); const assistantBubble = document.createElement('div'); assistantBubble.className = 'message bot'; assistantBubble.textContent = '…'; messagesEl.appendChild(assistantBubble); try { const reply = await onSend(history); assistantBubble.textContent = reply || '(empty reply)'; history.push({ role: 'assistant', content: reply || '' }); } catch (err) { assistantBubble.textContent = 'Error: ' + err.message; assistantBubble.style.color = '#ffb5c0'; } }; sendBtn.addEventListener('click', send); inputEl.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); send(); } }); }
+    renderChat('localChat', async (history) => { const model = document.getElementById('ollamaModel').value; if (!model) throw new Error('No Ollama model selected. Pull one with "ollama pull llama3.2".'); const data = await api('/api/ollama/chat', { model, messages: history }, 'POST'); return data.message?.content || '(empty reply)'; });
+    renderChat('cloudChat', async (history) => { const provider = S.cloudProvider || 'anthropic'; const apiKey = document.getElementById('cloudKey').value.trim(); if (!apiKey) throw new Error('Paste a provider API key first.'); const model = document.getElementById('cloudModel').value.trim() || 'claude-sonnet-4'; if (provider === 'anthropic') { const response = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, body: JSON.stringify({ model, max_tokens: 1024, messages: history }) }); const json = await response.json(); if (!response.ok) throw new Error(json.error?.message || 'Anthropic request failed'); return json.content?.map((part) => part.text || '').join('') || '(empty reply)'; } if (provider === 'openai') { const response = await fetch('https://api.openai.com/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, messages: history }) }); const json = await response.json(); if (!response.ok) throw new Error(json.error?.message || 'OpenAI request failed'); return json.choices?.[0]?.message?.content || '(empty reply)'; } const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: history.map((msg) => ({ role: msg.role === 'assistant' ? 'model' : 'user', parts: [{ text: msg.content }] })) }) }); const json = await response.json(); if (!response.ok) throw new Error(json.error?.message || 'Gemini request failed'); return json.candidates?.[0]?.content?.parts?.map((part) => part.text).join('') || '(empty reply)'; });
+    function renderSkills() { const skills = [['Local network addresses','Get-NetIPAddress -AddressFamily IPv4 | Format-Table InterfaceAlias,IPAddress -AutoSize'],['Disk usage summary','Get-PSDrive -PSProvider FileSystem | Format-Table Name,@{n="UsedGB";e={[math]::Round($_.Used/1GB,1)}},@{n="FreeGB";e={[math]::Round($_.Free/1GB,1)}} -AutoSize'],['Check memory hogs','Get-Process | Sort WorkingSet64 -Descending | Select -First 10 Name,@{n="MB";e={[int]($_.WorkingSet64/1MB)}}']]; document.getElementById('skillList').innerHTML = skills.map(([name, cmd]) => `<div class="tool-card"><h4>${esc(name)}</h4><p>${esc(cmd)}</p><div class="actions"><button class="btn sm primary" data-skill-run="${esc(cmd)}">Run</button></div></div>`).join(''); }
+    document.getElementById('skillList').addEventListener('click', async (event) => { const button = event.target.closest('[data-skill-run]'); if (!button) return; const command = button.dataset.skillRun; try { const result = await api('/api/run', { command }); toast('Skill executed', 'ok'); document.getElementById('cmdOutput').textContent = result.output || '(no output)'; setActivePage('terminal'); } catch (err) { toast(err.message, 'error'); } });
+    document.getElementById('actionCards').addEventListener('click', async (event) => { const button = event.target.closest('[data-action]'); if (!button) return; const action = button.dataset.action; try { const data = await api('/api/action', { name: action, approved: true }); toast(data.output || 'Action completed', 'ok'); } catch (err) { toast(err.message, 'error'); } });
+    document.getElementById('saveBridgeBtn').addEventListener('click', async () => { S.url = document.getElementById('bridgeUrl').value.trim() || 'http://127.0.0.1:8787'; S.token = document.getElementById('bridgeToken').value.trim(); save(); const ok = await pingBridge(); if (ok) { toast('Connected to the bridge', 'ok'); loadStats(); loadModels(); } else { toast('Bridge not reachable. Check the URL and token.', 'error'); } });
+    document.getElementById('clearDataBtn').addEventListener('click', () => { if (confirm('Clear saved browser state?')) { localStorage.removeItem('helpyard-state'); location.reload(); } });
+    document.getElementById('mcpList').innerHTML = [['Filesystem','Local project access','Read-only file metadata'],['GitHub','Repository and issue access','Needs token'],['Playwright','Browser automation','Requires explicit approval'],['Memory','Persistent notes','Local-only']].map(([name, subtitle, text]) => `<div class="tool-card"><h4>${esc(name)}</h4><p>${esc(subtitle)}</p><div class="muted" style="font-size:12px;">${esc(text)}</div></div>`).join('');
+    renderSkills(); renderSecurity(); populateToolList(); populateActionList(); populateActionCards(); document.getElementById('bridgeUrl').value = S.url; document.getElementById('bridgeToken').value = S.token; document.getElementById('cloudProvider').value = S.cloudProvider || 'anthropic'; document.getElementById('cloudModel').value = S.cloudModel || 'claude-sonnet-4'; document.getElementById('cloudKey').value = S.cloudKey || ''; document.getElementById('wbSystem').value = S.systemPrompt || defaultState.systemPrompt; document.getElementById('cloudProvider').addEventListener('change', () => { S.cloudProvider = document.getElementById('cloudProvider').value; save(); }); document.getElementById('cloudModel').addEventListener('change', () => { S.cloudModel = document.getElementById('cloudModel').value; save(); }); document.getElementById('cloudKey').addEventListener('change', () => { S.cloudKey = document.getElementById('cloudKey').value; save(); }); document.getElementById('wbSave').addEventListener('click', () => { S.systemPrompt = document.getElementById('wbSystem').value; save(); toast('Workbench settings saved', 'ok'); }); document.getElementById('wbReset').addEventListener('click', () => { document.getElementById('wbSystem').value = defaultState.systemPrompt; S.systemPrompt = defaultState.systemPrompt; save(); toast('Workbench reset', 'ok'); }); pingBridge().then((connected) => { if (connected) { loadStats(); loadProjects(); loadModels(); } }); setInterval(() => { if (document.getElementById('page-overview').classList.contains('active')) loadStats(); }, 5000); setInterval(() => pingBridge(), 15000);
+  </script>
 </body>
 </html>
