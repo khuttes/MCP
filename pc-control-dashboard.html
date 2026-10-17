@@ -12,6 +12,7 @@
   </style>
   <style>
     :focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+    .btn:disabled{cursor:not-allowed;opacity:.55;transform:none}
     .notice{display:none;margin:0 0 16px;padding:12px 14px;border:1px solid rgba(255,93,115,.35);border-radius:12px;background:rgba(255,93,115,.1);color:#ffc9d4}
     .notice.visible{display:block}
     .notice.success{border-color:rgba(61,220,151,.35);background:rgba(61,220,151,.1);color:#cbf4dd}
@@ -116,6 +117,10 @@
     .skill-card h4{font-size:16px}
     .skill-card p{flex:1;line-height:1.55}
     .skill-card .pill{margin-top:10px}
+    .skill-record details{margin-top:10px;width:100%}
+    .skill-record pre{max-height:240px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--muted);font:inherit;font-size:12px}
+    .skill-editor{margin:14px 0}
+    .skill-editor[hidden]{display:none}
     .portal-shortcut{display:flex;align-items:center;gap:8px;margin-top:12px;color:var(--cyan);font-size:12px;font-weight:700}
     .portal-shortcut:hover{text-decoration:underline}
     body[data-theme="light"] .metric-card,body[data-theme="light"] .suggestion-card,body[data-theme="light"] .local-server{background:rgba(255,255,255,.72)}
@@ -273,7 +278,28 @@
 
       <section id="page-mcp" class="page"><div class="card"><h3>MCP servers</h3><div id="mcpList" class="grid three"></div></div></section>
 
-      <section id="page-skills" class="page"><div class="card"><h3>Skill library</h3><p class="skills-intro">Curated read-only ideas for common workstation checks. These entries are examples only: the project does not download, install, or execute skills.</p><div id="skillList" class="grid three"></div></div></section>
+      <section id="page-skills" class="page">
+        <div class="card">
+          <div class="panel-title"><h3>Skill library</h3><button id="newSkillBtn" class="btn primary sm" type="button">Create skill</button></div>
+          <p class="skills-intro">Built-in Run buttons call fixed, allowlisted, read-only checks on this computer; results stay local. Editing a built-in name or guidance does not change its fixed check. Custom skills are saved as declarative guidance only and cannot be run, do not change permissions, and are not automatically added to AI prompts.</p>
+          <div class="row" style="margin:14px 0;"><label class="grow" for="skillSearch">Search saved skills and examples</label><input id="skillSearch" type="search" placeholder="Name, category, or description" style="max-width:360px;" /><button id="refreshSkillsBtn" class="btn sm" type="button">↻ Refresh</button></div>
+          <p id="skillStatus" class="muted" role="status" aria-live="polite">Connect the bridge to load saved skills.</p>
+          <form id="skillForm" class="card skill-editor" hidden>
+            <h3 id="skillFormTitle">Create skill</h3>
+            <input id="skillId" type="hidden" />
+            <div class="grid two">
+              <div class="field"><label for="skillName">Name</label><input id="skillName" maxlength="120" required /></div>
+              <div class="field"><label for="skillCategory">Category</label><input id="skillCategory" maxlength="80" required /></div>
+            </div>
+            <div class="field" style="margin-top:12px;"><label for="skillDescription">Description</label><textarea id="skillDescription" maxlength="2000" rows="3"></textarea></div>
+            <div class="field" style="margin-top:12px;"><label for="skillInstructions">Guidance instructions</label><textarea id="skillInstructions" maxlength="20000" required></textarea></div>
+            <div class="field" style="margin-top:12px;"><label for="skillState">Status</label><select id="skillState"><option value="draft">Draft</option><option value="enabled">Enabled · guidance only</option><option value="disabled">Disabled</option></select></div>
+            <p class="muted">Maximum 20,000 instruction characters. Content is stored locally and is not executed or sent to an AI provider by this manager.</p>
+            <div class="row"><button id="saveSkillBtn" class="btn primary" type="submit">Save skill</button><button id="cancelSkillBtn" class="btn" type="button">Cancel</button></div>
+          </form>
+          <div id="skillList" class="grid three"></div>
+        </div>
+      </section>
 
       <section id="page-security" class="page"><div class="grid two"><div class="card"><h3>Security posture</h3><ul class="list" id="securityList"></ul></div><div class="card"><h3>Audit log</h3><ul class="list" id="auditList"></ul></div></div></section>
 
@@ -288,6 +314,9 @@
     const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
     const defaultState = { theme: 'dark', accent: 'cyan', showSuggestions: true, url: 'http://127.0.0.1:8787', token: '', ollamaModel: '', cloudProvider: 'anthropic', cloudModel: 'claude-sonnet-4', systemPrompt: 'Act as a careful local engineering assistant. Prefer evidence, safe actions, and explicit approval for anything that changes the system.' };
     let storageWarning = '';
+    let savedSkills = [];
+    let skillsLoadError = '';
+    let skillsLoaded = false;
     function loadSavedState() { try { const parsed = JSON.parse(localStorage.getItem('helpyard-state') || '{}'); if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Saved browser state must be an object.'); const warnings = []; if (parsed.cloudKey) warnings.push('A previously saved cloud API key was discarded; re-enter it for this session.'); if (parsed.token) warnings.push('A previously saved bridge token was discarded; enter the current bridge token in Settings.'); if (warnings.length) storageWarning = warnings.join(' '); return parsed; } catch (err) { storageWarning = 'Saved browser settings could not be read. Defaults are active; use Settings to reconnect. Details: ' + err.message; return {}; } }
     const savedState = loadSavedState();
     let S = { ...defaultState, ...Object.fromEntries(Object.entries(savedState).filter(([key]) => Object.prototype.hasOwnProperty.call(defaultState, key))) };
@@ -543,13 +572,13 @@
       local: ['Local chat uses your configured Ollama service. Confirm the selected model and keep large prompts appropriate for your machine.', 'settings', 'Open settings'],
       cloud: ['Cloud prompts are sent to the selected provider. Do not include secrets or sensitive local data; API keys remain session-only.', 'settings', 'Open settings'],
       mcp: ['MCP startup remains disabled until a reviewed registry and fixed executable/argument policies are implemented.', 'security', 'Review safeguards'],
-      skills: ['Listed skills are informational examples, not executable tasks. Inspect their source and permissions before enabling future downloads.', 'security', 'Review safeguards'],
+      skills: ['Built-in Run buttons invoke fixed local read-only checks; edits change only the card text. Custom skills are stored as guidance and never executed or sent to AI. Keep secrets out of saved content.', 'security', 'Review safeguards'],
       security: ['The bridge is designed for IPv4 loopback only. Do not expose its port to your LAN or the public internet.', 'settings', 'Connection settings'],
       settings: ['Only appearance and non-secret preferences are saved. Session tokens and provider API keys are excluded from browser storage.', 'security', 'Review security']
     };
     function renderSuggestion(name) { const portal = document.getElementById('suggestionPortal'); const suggestion = pageSuggestions[name]; portal.hidden = !S.showSuggestions || !suggestion; if (!suggestion) return; document.getElementById('suggestionText').textContent = suggestion[0]; const link = document.getElementById('suggestionLink'); link.textContent = suggestion[2]; link.onclick = () => setActivePage(suggestion[1]); }
     function openSuggestions() { if (!S.showSuggestions) { S.showSuggestions = true; document.getElementById('suggestionsToggle').checked = true; save(); } const activePage = document.querySelector('.page.active')?.id.replace('page-', '') || 'overview'; renderSuggestion(activePage); document.getElementById('suggestionPortal').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'nearest' }); }
-    function setActivePage(name) { $$('.page').forEach((page) => page.classList.toggle('active', page.id === 'page-' + name)); $$('.nav button').forEach((btn) => btn.classList.toggle('active', btn.dataset.page === name)); const titles = { overview:['Overview','Local workstation status and AI controls'], projects:['Projects','Inspect local repositories and workspaces'], workbench:['Workbench','Task planning and safe execution context'], processes:['Processes','Process and memory control'], services:['Services','Service lifecycle and health'], terminal:['Terminal','Run commands with explicit awareness'], local:['Local AI','Check the local Ollama service and installed models'], cloud:['Cloud AI','Use configured cloud providers'], mcp:['MCP','Manage local Model Context Protocol servers'], skills:['Skills','Read-only guidance and safe section shortcuts'], security:['Security','Audit posture and access controls'], settings:['Settings','Connect the dashboard to the bridge'] }; const [title, subtitle] = titles[name] || ['Overview','Local workstation status and AI controls']; document.getElementById('pageTitle').textContent = title; document.getElementById('pageSubtitle').textContent = subtitle; renderSuggestion(name); if (name === 'projects') loadProjects(); if (name === 'processes') loadProcesses(); if (name === 'services') loadServices(); if (name === 'local') loadModels(); }
+    function setActivePage(name) { $$('.page').forEach((page) => page.classList.toggle('active', page.id === 'page-' + name)); $$('.nav button').forEach((btn) => btn.classList.toggle('active', btn.dataset.page === name)); const titles = { overview:['Overview','Local workstation status and AI controls'], projects:['Projects','Inspect local repositories and workspaces'], workbench:['Workbench','Task planning and safe execution context'], processes:['Processes','Process and memory control'], services:['Services','Service lifecycle and health'], terminal:['Terminal','Run commands with explicit awareness'], local:['Local AI','Check the local Ollama service and installed models'], cloud:['Cloud AI','Use configured cloud providers'], mcp:['MCP','Manage local Model Context Protocol servers'], skills:['Skills','Run fixed read-only checks and manage local skills'], security:['Security','Audit posture and access controls'], settings:['Settings','Connect the dashboard to the bridge'] }; const [title, subtitle] = titles[name] || ['Overview','Local workstation status and AI controls']; document.getElementById('pageTitle').textContent = title; document.getElementById('pageSubtitle').textContent = subtitle; renderSuggestion(name); if (name === 'projects') loadProjects(); if (name === 'processes') loadProcesses(); if (name === 'services') loadServices(); if (name === 'local') loadModels(); if (name === 'skills') loadSkills(); }
     document.querySelectorAll('.nav button').forEach((btn) => { btn.addEventListener('click', () => setActivePage(btn.dataset.page)); });
     document.querySelectorAll('[data-open-page]').forEach((btn) => { btn.addEventListener('click', () => setActivePage(btn.dataset.openPage)); });
     document.getElementById('suggestionsOpen').addEventListener('click', openSuggestions);
@@ -560,7 +589,7 @@
     document.getElementById('suggestionsToggle').checked = S.showSuggestions;
     document.getElementById('accentSelect').addEventListener('change', (event) => { S.accent = event.target.value; save(); setTheme(); drawHistory(); });
     document.getElementById('suggestionsToggle').addEventListener('change', (event) => { S.showSuggestions = event.target.checked; save(); renderSuggestion(document.querySelector('.page.active').id.replace('page-', '')); });
-    document.getElementById('refreshProjectsBtn').addEventListener('click', loadProjects); document.getElementById('refreshModelsBtn').addEventListener('click', loadModels); document.getElementById('refreshProcBtn').addEventListener('click', loadProcesses); document.getElementById('refreshSvcBtn').addEventListener('click', loadServices);
+    document.getElementById('refreshProjectsBtn').addEventListener('click', loadProjects); document.getElementById('refreshModelsBtn').addEventListener('click', loadModels); document.getElementById('refreshProcBtn').addEventListener('click', loadProcesses); document.getElementById('refreshSvcBtn').addEventListener('click', loadServices); document.getElementById('refreshSkillsBtn').addEventListener('click', loadSkills);
     document.getElementById('procFilter').addEventListener('input', renderProcesses); document.getElementById('svcFilter').addEventListener('input', renderServices); document.getElementById('svcStatus').addEventListener('change', renderServices);
     document.getElementById('procBody').addEventListener('click', async (event) => { const button = event.target.closest('[data-kill]'); if (!button) return; const pid = Number(button.dataset.kill); if (!pid || !confirm(`Stop process with PID ${pid}? This may lose unsaved work.`)) return; try { await api('/api/process/stop', { id: pid, approved: true }); toast('Process stopped', 'ok'); loadProcesses(); } catch (err) { toast(err.message, 'error'); } });
     document.getElementById('svcBody').addEventListener('click', async (event) => { const button = event.target.closest('[data-svc-action]'); if (!button) return; const action = button.dataset.svcAction; const name = button.dataset.svcName; if (!confirm(`${action} service "${name}"? This changes system state.`)) return; try { await api('/api/service', { name, action, approved: true }); toast(`${action} ${name}`, 'ok'); loadServices(); } catch (err) { toast(err.message, 'error'); } });
@@ -569,20 +598,146 @@
     function renderChat(containerId, onSend) { const container = document.getElementById(containerId); container.innerHTML = `<div class="messages" id="${containerId}-messages"></div><div class="composer"><textarea id="${containerId}-input" rows="2" placeholder="Type a message…"></textarea><button class="btn primary" id="${containerId}-send">Send</button></div>`; const messagesEl = document.getElementById(containerId + '-messages'); const inputEl = document.getElementById(containerId + '-input'); const sendBtn = document.getElementById(containerId + '-send'); let history = []; const addMessage = (role, text) => { const node = document.createElement('div'); node.className = 'message ' + (role === 'user' ? 'user' : 'bot'); node.textContent = text; messagesEl.appendChild(node); messagesEl.scrollTop = messagesEl.scrollHeight; }; const send = async () => { const text = inputEl.value.trim(); if (!text) return; inputEl.value = ''; addMessage('user', text); history.push({ role: 'user', content: text }); const assistantBubble = document.createElement('div'); assistantBubble.className = 'message bot'; assistantBubble.textContent = '…'; messagesEl.appendChild(assistantBubble); try { const reply = await onSend(history); assistantBubble.textContent = reply || '(empty reply)'; history.push({ role: 'assistant', content: reply || '' }); } catch (err) { assistantBubble.textContent = 'Error: ' + err.message; assistantBubble.style.color = '#ffb5c0'; } }; sendBtn.addEventListener('click', send); inputEl.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); send(); } }); }
     renderChat('localChat', async (history) => { const model = document.getElementById('ollamaModel').value; if (!model) throw new Error('No Ollama model selected. Pull one with "ollama pull llama3.2".'); const data = await api('/api/ollama/chat', { model, messages: history }, 'POST', 600000); return data.message?.content || '(empty reply)'; });
     renderChat('cloudChat', async (history) => { const provider = S.cloudProvider || 'anthropic'; const apiKey = document.getElementById('cloudKey').value.trim(); if (!apiKey) throw new Error('Paste a provider API key first.'); const model = document.getElementById('cloudModel').value.trim() || 'claude-sonnet-4'; if (provider === 'anthropic') { const response = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, body: JSON.stringify({ model, max_tokens: 1024, messages: history }) }); const json = await response.json(); if (!response.ok) throw new Error(json.error?.message || 'Anthropic request failed'); return json.content?.map((part) => part.text || '').join('') || '(empty reply)'; } if (provider === 'openai') { const response = await fetch('https://api.openai.com/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, messages: history }) }); const json = await response.json(); if (!response.ok) throw new Error(json.error?.message || 'OpenAI request failed'); return json.choices?.[0]?.message?.content || '(empty reply)'; } const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: history.map((msg) => ({ role: msg.role === 'assistant' ? 'model' : 'user', parts: [{ text: msg.content }] })) }) }); const json = await response.json(); if (!response.ok) throw new Error(json.error?.message || 'Gemini request failed'); return json.candidates?.[0]?.content?.parts?.map((part) => part.text).join('') || '(empty reply)'; });
+    const skillResults = new Map();
     function renderSkills() {
-      const skills = [
-        ['System health', 'CPU and memory review', 'Compare live system load with the recent chart and understand its short, in-memory sampling window.', 'overview', 'Open overview'],
-        ['Process review', 'Read-only inventory', 'Filter the current process inventory. Stopping processes remains a separate, approval-gated action.', 'processes', 'Review processes'],
-        ['Storage planning', 'Capacity check', 'Inspect free and used space on detected fixed disks before planning local workloads.', 'overview', 'View capacity'],
-        ['Local inference', 'Model readiness', 'Check local Ollama availability and installed models before starting a chat.', 'local', 'Check Local AI']
-      ];
-      document.getElementById('skillList').innerHTML = skills.map(([category, name, detail, page, action]) => `<article class="tool-card skill-card"><span class="skill-category">${esc(category)}</span><h4>${esc(name)}</h4><p>${esc(detail)}</p><span class="pill warn">Guidance only · not executable</span><button class="btn sm" style="margin-top:12px;" type="button" data-open-page="${esc(page)}">${esc(action)}</button></article>`).join('');
+      const filter = document.getElementById('skillSearch').value.trim().toLowerCase();
+      const records = [...savedSkills].sort((first, second) => Number(second.pinned) - Number(first.pinned) || Number(second.builtIn) - Number(first.builtIn) || (first.builtIn ? 0 : first.name.localeCompare(second.name))).filter((skill) => `${skill.name} ${skill.category} ${skill.description}`.toLowerCase().includes(filter));
+      document.getElementById('skillList').innerHTML = records.map((skill) => {
+        const latest = skillResults.get(skill.id);
+        const runButton = skill.builtIn && skill.runnerId
+          ? `<button class="btn sm primary" type="button" data-run-skill="${esc(skill.id)}" ${skill.status === 'enabled' ? '' : 'disabled'}>▶ Run</button>`
+          : '';
+        const resultPanel = latest
+          ? `<details open><summary>${latest.error ? 'Check failed' : 'Latest result'}${latest.checkedAt ? ` · ${esc(new Date(latest.checkedAt).toLocaleTimeString())}` : ''}</summary>${latest.error ? `<p class="pill bad">${esc(latest.error)}</p>` : `<pre>${esc(JSON.stringify(latest.result, null, 2))}</pre>`}</details>`
+          : '';
+        return `<article class="tool-card skill-card skill-record"><span class="skill-category">${esc(skill.category)}${skill.pinned ? ' · PINNED' : ''}</span><h4>${esc(skill.name)}</h4><p>${esc(skill.description || 'No description provided.')}</p><span class="pill ${skill.status === 'enabled' ? 'ok' : 'warn'}">${esc(skill.status)}${skill.builtIn ? ' · fixed read-only check' : ' · guidance only'} · v${esc(skill.version)}</span><details><summary>View instructions</summary><pre>${esc(skill.instructions)}</pre></details>${skill.builtIn ? '<p class="muted">Editing this card does not alter its fixed operation.</p>' : ''}${resultPanel}<div class="actions" style="margin-top:12px;">${runButton}<button class="btn sm" type="button" data-pin-skill="${esc(skill.id)}" aria-pressed="${skill.pinned ? 'true' : 'false'}">${skill.pinned ? '★ Pinned' : '☆ Pin'}</button><button class="btn sm" type="button" data-edit-skill="${esc(skill.id)}">✎ Edit</button><button class="btn sm danger" type="button" data-delete-skill="${esc(skill.id)}">🗑 Delete</button></div></article>`;
+      }).join('') || (skillsLoadError ? '' : '<p class="muted">No skills match this search.</p>');
+      const status = document.getElementById('skillStatus');
+      status.textContent = skillsLoadError || (skillsLoaded ? `${savedSkills.length} saved skill${savedSkills.length === 1 ? '' : 's'} loaded from local bridge storage.` : 'Connect the bridge to load saved skills.');
+      status.className = skillsLoadError ? 'badge bad' : 'muted';
     }
+    async function loadSkills() {
+      document.getElementById('skillStatus').textContent = 'Loading saved skills…';
+      try {
+        const data = await api('/api/skills');
+        if (!data || data.schemaVersion !== 2 || !Array.isArray(data.skills)) throw new Error('Bridge returned an invalid Skills response.');
+        savedSkills = data.skills;
+        skillsLoadError = '';
+        skillsLoaded = true;
+      } catch (err) {
+        skillsLoadError = 'Saved skills could not be loaded: ' + err.message;
+      }
+      renderSkills();
+    }
+    function openSkillEditor(skill = null) {
+      const form = document.getElementById('skillForm');
+      form.reset();
+      document.getElementById('skillId').value = skill?.id || '';
+      document.getElementById('skillName').value = skill?.name || '';
+      document.getElementById('skillCategory').value = skill?.category || '';
+      document.getElementById('skillDescription').value = skill?.description || '';
+      document.getElementById('skillInstructions').value = skill?.instructions || '';
+      document.getElementById('skillState').value = skill?.status || 'draft';
+      document.getElementById('skillFormTitle').textContent = skill ? 'Edit saved skill' : 'Create skill';
+      document.getElementById('saveSkillBtn').textContent = skill ? 'Save changes' : 'Save skill';
+      form.hidden = false;
+      document.getElementById('skillName').focus();
+    }
+    document.getElementById('newSkillBtn').addEventListener('click', () => openSkillEditor());
+    document.getElementById('cancelSkillBtn').addEventListener('click', () => { document.getElementById('skillForm').hidden = true; });
+    document.getElementById('skillSearch').addEventListener('input', renderSkills);
+    document.getElementById('skillForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const id = document.getElementById('skillId').value;
+      const skill = {
+        name: document.getElementById('skillName').value,
+        category: document.getElementById('skillCategory').value,
+        description: document.getElementById('skillDescription').value,
+        instructions: document.getElementById('skillInstructions').value,
+        status: document.getElementById('skillState').value
+      };
+      if (id) skill.id = id;
+      try {
+        const result = await api('/api/skills', { action: id ? 'update' : 'create', skill });
+        if (!result?.skill) throw new Error('Bridge did not confirm saving this skill.');
+        if (id) savedSkills = savedSkills.map((saved) => saved.id === id ? result.skill : saved);
+        else savedSkills = [...savedSkills, result.skill];
+        if (id) skillResults.delete(id);
+        skillsLoadError = '';
+        skillsLoaded = true;
+        document.getElementById('skillForm').hidden = true;
+        renderSkills();
+        toast('Skill saved locally as guidance only.', 'ok');
+      } catch (err) {
+        document.getElementById('skillStatus').textContent = 'Skill was not saved: ' + err.message;
+        document.getElementById('skillStatus').className = 'badge bad';
+        toast(err.message, 'error');
+      }
+    });
+    document.getElementById('skillList').addEventListener('click', async (event) => {
+      const runButton = event.target.closest('[data-run-skill]');
+      if (runButton) {
+        const skillId = runButton.dataset.runSkill;
+        runButton.disabled = true;
+        runButton.textContent = 'Running…';
+        try {
+          const response = await api('/api/skills', { action: 'run', id: skillId });
+          skillResults.set(skillId, { result: response.result, checkedAt: response.checkedAt });
+          toast('Read-only check completed. Results remain on this device.', 'ok');
+        } catch (err) {
+          skillResults.set(skillId, { error: err.message });
+          toast(err.message, 'error');
+        }
+        renderSkills();
+        return;
+      }
+      const pinButton = event.target.closest('[data-pin-skill]');
+      if (pinButton) {
+        const skill = savedSkills.find((item) => item.id === pinButton.dataset.pinSkill);
+        if (!skill) return;
+        try {
+          const response = await api('/api/skills', { action: 'pin', id: skill.id, pinned: !skill.pinned });
+          if (!response?.skill) throw new Error('Bridge did not confirm the pin change.');
+          savedSkills = savedSkills.map((item) => item.id === skill.id ? response.skill : item);
+          renderSkills();
+        } catch (err) {
+          document.getElementById('skillStatus').textContent = 'Skill pin could not be saved: ' + err.message;
+          document.getElementById('skillStatus').className = 'badge bad';
+          toast(err.message, 'error');
+        }
+        return;
+      }
+      const editButton = event.target.closest('[data-edit-skill]');
+      if (editButton) {
+        const skill = savedSkills.find((item) => item.id === editButton.dataset.editSkill);
+        if (skill) openSkillEditor(skill);
+        return;
+      }
+      const deleteButton = event.target.closest('[data-delete-skill]');
+      if (!deleteButton) return;
+      const skill = savedSkills.find((item) => item.id === deleteButton.dataset.deleteSkill);
+      const deletePrompt = skill?.builtIn
+        ? `Delete built-in skill "${skill.name}" and remove its Run button? A backup of the catalog will be kept.`
+        : `Delete saved guidance "${skill?.name}"? A backup of the catalog will be kept.`;
+      if (!skill || !confirm(deletePrompt)) return;
+      try {
+        await api('/api/skills', { action: 'delete', id: skill.id });
+        savedSkills = savedSkills.filter((item) => item.id !== skill.id);
+        skillResults.delete(skill.id);
+        skillsLoaded = true;
+        renderSkills();
+        toast('Saved guidance deleted.', 'ok');
+      } catch (err) {
+        document.getElementById('skillStatus').textContent = 'Skill was not deleted: ' + err.message;
+        document.getElementById('skillStatus').className = 'badge bad';
+        toast(err.message, 'error');
+      }
+    });
     document.getElementById('actionCards').addEventListener('click', async (event) => { const button = event.target.closest('[data-action]'); if (!button) return; const action = button.dataset.action; const requiresApproval = button.dataset.approval === 'true'; if (requiresApproval && !confirm(`Run ${action}? This is a high-impact action and requires administrator permission.`)) return; try { const data = await api('/api/action', { name: action, approved: requiresApproval }); toast(data.output || 'Action completed', 'ok'); } catch (err) { toast(err.message, 'error'); } });
-    document.getElementById('saveBridgeBtn').addEventListener('click', async () => { S.url = document.getElementById('bridgeUrl').value.trim() || 'http://127.0.0.1:8787'; S.token = document.getElementById('bridgeToken').value.trim(); save(); const ok = await pingBridge(); if (ok) { toast('Connected to the bridge', 'ok'); loadStats(); loadProjects(); loadModels(); } else { toast('Connection failed. See the message above for details.', 'error'); } });
+    document.getElementById('saveBridgeBtn').addEventListener('click', async () => { S.url = document.getElementById('bridgeUrl').value.trim() || 'http://127.0.0.1:8787'; S.token = document.getElementById('bridgeToken').value.trim(); save(); const ok = await pingBridge(); if (ok) { toast('Connected to the bridge', 'ok'); loadStats(); loadProjects(); loadModels(); loadSkills(); } else { toast('Connection failed. See the message above for details.', 'error'); } });
     document.getElementById('clearDataBtn').addEventListener('click', () => { if (!confirm('Clear saved browser state?')) return; try { localStorage.removeItem('helpyard-state'); location.reload(); } catch (err) { showNotice('Browser storage could not be cleared: ' + err.message); } });
     document.getElementById('mcpList').innerHTML = '<div class="feature-status">MCP server lifecycle is not connected. Start operations remain disabled until a reviewed server registry, fixed executable paths, and argument policies are implemented.</div>';
-    renderSkills(); renderSecurity(); populateActionCards(); document.getElementById('bridgeUrl').value = S.url; document.getElementById('bridgeToken').value = S.token; document.getElementById('cloudProvider').value = S.cloudProvider || 'anthropic'; document.getElementById('cloudModel').value = S.cloudModel || 'claude-sonnet-4'; document.getElementById('cloudKey').value = ''; document.getElementById('wbSystem').value = S.systemPrompt || defaultState.systemPrompt; document.getElementById('cloudProvider').addEventListener('change', () => { S.cloudProvider = document.getElementById('cloudProvider').value; save(); }); document.getElementById('cloudModel').addEventListener('change', () => { S.cloudModel = document.getElementById('cloudModel').value; save(); }); document.getElementById('cloudKey').addEventListener('change', () => { S.cloudKey = document.getElementById('cloudKey').value; save(); }); document.getElementById('wbSave').addEventListener('click', () => { S.systemPrompt = document.getElementById('wbSystem').value; save(); toast('Workbench settings saved', 'ok'); }); document.getElementById('wbReset').addEventListener('click', () => { document.getElementById('wbSystem').value = defaultState.systemPrompt; S.systemPrompt = defaultState.systemPrompt; save(); toast('Workbench reset', 'ok'); }); if (storageWarning) { if (storageWarning.startsWith('A previously saved cloud API key')) save(); showNotice(storageWarning); } async function initializeBridge() { const bootstrapped = await bootstrapBridge(); if (!bootstrapped) await detectBridgeUrl(); const connected = await pingBridge(); if (connected) { loadStats(); loadProjects(); loadModels(); } } initializeBridge(); setInterval(() => { if (document.getElementById('page-overview').classList.contains('active')) loadStats(); }, 5000); setInterval(() => pingBridge(), 15000);
+    renderSkills(); renderSecurity(); populateActionCards(); document.getElementById('bridgeUrl').value = S.url; document.getElementById('bridgeToken').value = S.token; document.getElementById('cloudProvider').value = S.cloudProvider || 'anthropic'; document.getElementById('cloudModel').value = S.cloudModel || 'claude-sonnet-4'; document.getElementById('cloudKey').value = ''; document.getElementById('wbSystem').value = S.systemPrompt || defaultState.systemPrompt; document.getElementById('cloudProvider').addEventListener('change', () => { S.cloudProvider = document.getElementById('cloudProvider').value; save(); }); document.getElementById('cloudModel').addEventListener('change', () => { S.cloudModel = document.getElementById('cloudModel').value; save(); }); document.getElementById('cloudKey').addEventListener('change', () => { S.cloudKey = document.getElementById('cloudKey').value; save(); }); document.getElementById('wbSave').addEventListener('click', () => { S.systemPrompt = document.getElementById('wbSystem').value; save(); toast('Workbench settings saved', 'ok'); }); document.getElementById('wbReset').addEventListener('click', () => { document.getElementById('wbSystem').value = defaultState.systemPrompt; S.systemPrompt = defaultState.systemPrompt; save(); toast('Workbench reset', 'ok'); }); if (storageWarning) { if (storageWarning.startsWith('A previously saved cloud API key')) save(); showNotice(storageWarning); } async function initializeBridge() { const bootstrapped = await bootstrapBridge(); if (!bootstrapped) await detectBridgeUrl(); const connected = await pingBridge(); if (connected) { loadStats(); loadProjects(); loadModels(); loadSkills(); } } initializeBridge(); setInterval(() => { if (document.getElementById('page-overview').classList.contains('active')) loadStats(); }, 5000); setInterval(() => pingBridge(), 15000);
     if (storageWarning) {
       if (storageWarning.includes('discarded')) save();
       const storageNotice = document.getElementById('storageNotice');
