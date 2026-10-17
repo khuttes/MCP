@@ -45,7 +45,7 @@ function Invoke-BridgeRequest([string]$Path, [string]$RequestToken, [string]$Met
   try {
     $reader = New-Object IO.StreamReader($response.GetResponseStream())
     try { $content = $reader.ReadToEnd() } finally { $reader.Dispose() }
-    return [pscustomobject]@{ Status = [int]$response.StatusCode; Body = $content; AllowOrigin = $response.Headers['Access-Control-Allow-Origin'] }
+    return [pscustomobject]@{ Status = [int]$response.StatusCode; Body = $content; ContentType = $response.ContentType; AllowOrigin = $response.Headers['Access-Control-Allow-Origin'] }
   } finally { $response.Dispose() }
 }
 
@@ -72,6 +72,12 @@ try {
     Start-Sleep -Milliseconds 300
   }
   if (-not $ready) { throw "Bridge did not become ready. See $stdoutPath and $stderrPath" }
+
+  $dashboard = Invoke-BridgeRequest '/pc-control-dashboard.html' ''
+  Assert-Status $dashboard 200 'unauthenticated dashboard page'
+  if ($dashboard.ContentType -notlike 'text/html*' -or $dashboard.Body -notmatch '<title>Helpyard') { throw 'Dashboard route did not return the HTML dashboard.' }
+  Assert-Status (Invoke-BridgeRequest '/' '') 200 'dashboard root page'
+  Assert-Status (Invoke-BridgeRequest '/api/bridge-probe' '') 204 'unauthenticated bridge probe'
 
   $ping = Invoke-BridgeRequest '/api/ping' $token
   Assert-Status $ping 200 'authorized ping'
